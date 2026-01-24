@@ -1,0 +1,12 @@
+{
+  "domain": "warmlink",
+  "name": "WarmLink",
+  "version": "63.0",
+  "requirements": [
+    "aiohttp"
+  ],
+  "codeowners": [
+    "@local"
+  ],
+  "config_flow": true
+}

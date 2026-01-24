@@ -1,0 +1,2 @@
+DOMAIN='warmlink'
+UPDATE_INTERVAL=300

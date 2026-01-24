@@ -1,0 +1,182 @@
+# Basic WarmLink Dashboard Overview
+# Copy this to your dashboard to get started with monitoring your heat pump
+#
+# To use this:
+# 1. Go to Settings → Dashboards
+# 2. Create a new dashboard or edit existing
+# 3. Click "⋮" → "Raw configuration editor"
+# 4. Paste this configuration
+# 5. Adjust sensor entity IDs to match your installation
+
+title: Heat Pump
+views:
+  - title: Overview
+    path: overview
+    cards:
+      # Operating Status
+      - type: entities
+        title: Status
+        entities:
+          - entity: sensor.warmlink_mode_state_modestate
+            name: Operating Mode
+          - entity: sensor.warmlink_compressor_frequency_comfreq
+            name: Compressor Frequency
+          - entity: sensor.warmlink_fan_speed_fanspeed
+            name: Fan Speed
+          - entity: sensor.warmlink_eev_opening_eev1openvalue
+            name: EEV Opening
+      
+      # Key Temperatures
+      - type: entities
+        title: Temperatures
+        entities:
+          - entity: sensor.warmlink_water_inlet_temp_t01
+            name: Water Inlet
+          - entity: sensor.warmlink_water_outlet_temp_t02
+            name: Water Outlet
+          - entity: sensor.warmlink_ambient_temp_t04
+            name: Outdoor Temperature
+          - entity: sensor.warmlink_dhw_temp_t05
+            name: DHW Tank
+          - type: divider
+          - entity: sensor.heat_pump_delta_t
+            name: Delta T (Calculated)
+      
+      # Compressor Gauge
+      - type: gauge
+        entity: sensor.warmlink_compressor_frequency_comfreq
+        name: Compressor
+        unit: Hz
+        min: 0
+        max: 120
+        needle: true
+        severity:
+          green: 0
+          yellow: 80
+          red: 100
+      
+      # Temperature Graph (History)
+      - type: history-graph
+        title: Temperature History
+        entities:
+          - entity: sensor.warmlink_water_inlet_temp_t01
+            name: Inlet
+          - entity: sensor.warmlink_water_outlet_temp_t02
+            name: Outlet
+          - entity: sensor.warmlink_ambient_temp_t04
+            name: Outdoor
+        hours_to_show: 24
+        refresh_interval: 0
+      
+      # Compressor Parameters
+      - type: entities
+        title: Compressor Details
+        entities:
+          - entity: sensor.warmlink_compressor_frequency_comfreq
+            name: Frequency
+          - entity: sensor.warmlink_compressor_discharge_temp_t11
+            name: Discharge Temperature
+          - entity: sensor.warmlink_compressor_voltage_comvolt
+            name: Voltage
+          - entity: sensor.warmlink_compressor_current_comcurr
+            name: Current
+          - entity: sensor.warmlink_compressor_power_compow
+            name: Power
+      
+      # System Information
+      - type: markdown
+        content: >
+          ## Heat Pump System
+          
+          **Model:** {{ state_attr('sensor.warmlink_mode_state_modestate', 'device_model') }}
+          
+          **Serial:** {{ state_attr('sensor.warmlink_mode_state_modestate', 'device_serial') }}
+          
+          **Last Update:** {{ relative_time(states.sensor.warmlink_mode_state_modestate.last_updated) }} ago
+
+  - title: Advanced
+    path: advanced
+    cards:
+      # All EEV Sensors
+      - type: entities
+        title: EEV (Electronic Expansion Valve)
+        entities:
+          - entity: sensor.warmlink_eev_opening_eev1openvalue
+            name: EEV1 Opening
+          - entity: sensor.warmlink_eev_target_eev1target
+            name: EEV1 Target
+      
+      # Pressure Sensors (if available)
+      - type: entities
+        title: Pressures
+        show_header_toggle: false
+        entities:
+          - entity: sensor.warmlink_suction_pressure_lowpressure
+            name: Suction Pressure
+          - entity: sensor.warmlink_discharge_pressure_highpressure
+            name: Discharge Pressure
+      
+      # All Temperature Sensors
+      - type: entities
+        title: All Temperatures
+        show_header_toggle: false
+        entities:
+          - entity: sensor.warmlink_water_inlet_temp_t01
+            name: Water Inlet (T01)
+          - entity: sensor.warmlink_water_outlet_temp_t02
+            name: Water Outlet (T02)
+          - entity: sensor.warmlink_ambient_temp_t04
+            name: Ambient (T04)
+          - entity: sensor.warmlink_dhw_temp_t05
+            name: DHW Tank (T05)
+          - entity: sensor.warmlink_compressor_discharge_temp_t11
+            name: Compressor Discharge (T11)
+          # Add more temperature sensors as they become available
+      
+      # Compressor Stats
+      - type: history-graph
+        title: Compressor Frequency Over Time
+        entities:
+          - entity: sensor.warmlink_compressor_frequency_comfreq
+        hours_to_show: 48
+        refresh_interval: 0
+
+  - title: Energy
+    path: energy
+    cards:
+      # Power Consumption
+      - type: entities
+        title: Power Consumption
+        entities:
+          - entity: sensor.warmlink_compressor_power_compow
+            name: Compressor Power
+          - entity: sensor.warmlink_total_power
+            name: Total Power (if available)
+      
+      # Energy Graph
+      - type: history-graph
+        title: Power Consumption History
+        entities:
+          - entity: sensor.warmlink_compressor_power_compow
+            name: Compressor
+        hours_to_show: 24
+        refresh_interval: 0
+      
+      # Daily Statistics
+      - type: statistics-graph
+        title: Daily Average Power
+        entities:
+          - entity: sensor.warmlink_compressor_power_compow
+        stat_types:
+          - mean
+        period: day
+        days_to_show: 30
+
+# ============================================
+# Notes:
+# ============================================
+# 1. Sensor entity IDs may vary based on your heat pump model
+# 2. Not all sensors may be available on all models
+# 3. Adjust card configurations to match your preferences
+# 4. You can remove cards for sensors not supported by your model
+# 5. Add more cards as needed for additional monitoring

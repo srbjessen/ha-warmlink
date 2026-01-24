@@ -1,0 +1,76 @@
+{
+  "A03": "°C", "A04": "°C", "A05": "°C", "A06": "°C",
+  "A22": "°C", "A23": "°C", "A24": "°C", "A25": "°C",
+  "A27": "°C", "A28": "°C", "A30": "°C", "A31": "°C",
+  "A32": "min", "A33": "°C", "A34": "min", "A35": "°C",
+  "A38": "bar", "A39": "A", "A40": "m³/h",
+
+  "C01": "Hz", "C02": "Hz", "C03": "Hz",
+  "C05": "Hz", "C07": "Hz", "C08": "Hz", "C09": "Hz",
+  "C10": "Hz", "C11": "Hz", "C12": "Hz",
+
+  "D01": "°C", "D02": "min", "D03": "min", "D04": "°C",
+  "D05-1": "bar", "D05-2": "bar", "D06": "min",
+  "D07": "°C", "D08": "°C", "D09": "°C", "D10": "°C",
+  "D11": "°C", "D12": "bar", "D13": "min",
+  "D14": "%", "D15": "%", "D16": "W",
+  "D17": "°C", "D18": "°C", "D19": "min", "D20": "Hz",
+  "D22": "m³/h", "D23": "min", "D25": "°C", "D30": "min",
+
+  "E02": "°C", "E13": "°C", "E18": "°C", "E19": "%",
+
+  "F02": "°C", "F03": "°C", "F05": "°C", "F06": "°C",
+  "F14": "rpm", "F15": "rpm", "F17": "rpm",
+  "F18": "rpm", "F19": "rpm", "F23": "rpm",
+  "F25": "rpm", "F26": "rpm", "F28": "°C", "F29": "°C",
+
+  "G01": "°C", "G02": "min", "G03": "h", "G04": "Days",
+
+  "H32": "min", "H42": "°C",
+
+  "P02": "min", "P03": "min", "P08": "W", "P09": "Days",
+  "P10": "%", "P11": "°C", "P13": "Days", "P14": "s",
+  "P15": "bar", "P16": "bar",
+
+  "R01": "°C", "R02": "°C", "R03": "°C",
+  "R04": "°C", "R05": "°C", "R06": "°C", "R07": "°C",
+  "R08": "°C", "R09": "°C", "R10": "°C", "R11": "°C",
+  "R15": "°C", "R16": "°C", "R17": "°C",
+  "R29": "°C", "R30": "°C", "R31": "°C",
+  "R32": "°C", "R33": "°C", "R34": "°C",
+  "R36": "°C", "R37": "°C", "R39": "°C",
+  "R42": "°C", "R43": "°C", "R44": "°C", "R45": "°C", "R46": "°C",
+  "R60": "°C", "R61": "°C", "R62": "°C", "R70": "°C",
+  "R71": "°C", "R72": "°C", "R73": "°C", "R74": "°C",
+
+  "T01": "°C", "T02": "°C", "T03": "°C", "T04": "°C",
+  "T05": "°C", "T06": "°C", "T07": "°C", "T08": "°C", "T09": "°C",
+  "T10": "°C", "T11": "°C", "T12": "°C", "T15": "bar",
+  "T27": "rpm", "T28": "rpm", "T29": "rpm",
+  "T30": "Hz", "T31": "Hz", "T32": "Hz", "T33": "°C",
+  "T34": "V", "T35": "A", "T36": "A", "T37": "V", "T38": "°C",
+  "T39": "m³/h",
+  "T40": "°C", "T41": "°C", "T42": "°C", "T43": "°C",
+  "T44": "°C", "T46": "°C", "T47": "°C", "T48": "°C",
+
+  "Z02": "°C", "Z03": "°C", "Z04": "°C", "Z05": "°C",
+  "Z06": "°C", "Z07": "°C", "Z08": "%",
+  "Z09": "s", "Z10": "s", "Z13": "min",
+  "Z14": "%", "Z15": "°C", "Z19": "°C",
+
+  "M1 Heating Target": "°C", "M1 Cooling Target": "°C", "M1 Hot Water Target": "°C", "M1 Max. Power": "kW",
+  "M2 Heating Target": "°C", "M2 Cooling Target": "°C", "M2 Hot Water Target": "°C", "M2 Max. Power": "kW",
+  "M3 Heating Target": "°C", "M3 Cooling Target": "°C", "M3 Hot Water Target": "°C", "M3 Max. Power": "kW",
+  "M4 Heating Target": "°C", "M4 Cooling Target": "°C", "M4 Hot Water Target": "°C", "M4 Max. Power": "kW",
+  "M5 Heating Target": "°C", "M5 Cooling Target": "°C", "M5 Hot Water Target": "°C", "M5 Max. Power": "kW",
+  "M6 Heating Target": "°C", "M6 Cooling Target": "°C", "M6 Hot Water Target": "°C", "M6 Max. Power": "kW",
+
+  "TimerMuteOnHour": "h", "TimerMuteOnMinute": "min",
+  "TimerMuteOffHour": "h", "TimerMuteOffMinute": "min",
+
+  "Zone 1 Room Temp": "°C", "Zone 2 Room Temp": "°C",
+  "Zone 2 Mixing Temp": "°C", "Zone 2 Water Target": "°C",
+
+  "Power": "W",
+  "compensate_offset": "°C"
+}

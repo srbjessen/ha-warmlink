@@ -1,0 +1,15 @@
+{
+  "title": "WarmLink",
+  "config": {
+    "step": {
+      "user": {
+        "title": "WarmLink Opsætning",
+        "data": {
+          "username": "Brugernavn",
+          "password": "Adgangskode",
+          "language": "Sprog"
+        }
+      }
+    }
+  }
+}

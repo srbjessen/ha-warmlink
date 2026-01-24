@@ -1,0 +1,265 @@
+# ApexCharts Delta T Visualization
+# Shows temperature differential with colored backgrounds for operating modes
+
+# Prerequisites:
+# 1. Install ApexCharts Card via HACS (Frontend section)
+# 2. Add template sensors to configuration.yaml
+# 3. Add card to your dashboard
+
+# ============================================
+# STEP 1: Add these template sensors to configuration.yaml
+# ============================================
+
+template:
+  - sensor:
+      # Delta T calculation
+      - name: "Heat Pump Delta T"
+        unique_id: heat_pump_delta_t
+        unit_of_measurement: "°C"
+        state_class: measurement
+        device_class: temperature
+        state: >
+          {% set inlet = states('sensor.warmlink_water_inlet_temp_t01') | float(0) %}
+          {% set outlet = states('sensor.warmlink_water_outlet_temp_t02') | float(0) %}
+          {{ (outlet - inlet) | round(1) }}
+        icon: mdi:thermometer-lines
+      
+      # Operating mode - human readable
+      - name: "Heat Pump Operating Mode"
+        state: >
+          {% set status = states('sensor.warmlink_mode_state_modestate') | int %}
+          {% if status == 0 %}Cooling
+          {% elif status == 1 %}Heating
+          {% elif status == 2 %}Defrost
+          {% elif status == 3 %}Unknown
+          {% elif status == 4 %}DHW
+          {% else %}Off
+          {% endif %}
+        icon: mdi:heat-pump
+      
+      # Cooling mode visualization (min/max for colored background)
+      - name: "HP Mode Cooling Min"
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: >
+          {% if states('sensor.warmlink_mode_state_modestate') | int == 0 %}
+            -6.5
+          {% else %}
+            null
+          {% endif %}
+      
+      - name: "HP Mode Cooling Max"
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: >
+          {% if states('sensor.warmlink_mode_state_modestate') | int == 0 %}
+            6.5
+          {% else %}
+            null
+          {% endif %}
+      
+      # Heating mode visualization
+      - name: "HP Mode Heating Min"
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: >
+          {% if states('sensor.warmlink_mode_state_modestate') | int == 1 %}
+            -6.5
+          {% else %}
+            null
+          {% endif %}
+      
+      - name: "HP Mode Heating Max"
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: >
+          {% if states('sensor.warmlink_mode_state_modestate') | int == 1 %}
+            6.5
+          {% else %}
+            null
+          {% endif %}
+      
+      # Defrost mode visualization
+      - name: "HP Mode Defrost Min"
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: >
+          {% if states('sensor.warmlink_mode_state_modestate') | int == 2 %}
+            -6.5
+          {% else %}
+            null
+          {% endif %}
+      
+      - name: "HP Mode Defrost Max"
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: >
+          {% if states('sensor.warmlink_mode_state_modestate') | int == 2 %}
+            6.5
+          {% else %}
+            null
+          {% endif %}
+      
+      # DHW mode visualization
+      - name: "HP Mode DHW Min"
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: >
+          {% if states('sensor.warmlink_mode_state_modestate') | int == 4 %}
+            -6.5
+          {% else %}
+            null
+          {% endif %}
+      
+      - name: "HP Mode DHW Max"
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: >
+          {% if states('sensor.warmlink_mode_state_modestate') | int == 4 %}
+            6.5
+          {% else %}
+            null
+          {% endif %}
+
+# ============================================
+# STEP 2: Restart Home Assistant
+# ============================================
+
+# ============================================
+# STEP 3: Add this ApexCharts card to your dashboard
+# ============================================
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Delta T with Operating Mode
+  show_states: true
+graph_span: 6h
+all_series_config:
+  data_generator: history
+yaxis:
+  - id: temp
+    min: -6.5
+    max: 6.5
+    apex_config:
+      tickAmount: 6
+series:
+  # Cooling Mode (Blue background)
+  - entity: sensor.hp_mode_cooling_max
+    name: Cooling
+    type: area
+    yaxis_id: temp
+    curve: stepline
+    stroke_width: 0
+    opacity: 0.4
+    color: "#2196f3"
+    fill_raw: last
+    show:
+      legend_value: false
+      in_header: false
+  
+  - entity: sensor.hp_mode_cooling_min
+    type: area
+    yaxis_id: temp
+    curve: stepline
+    stroke_width: 0
+    opacity: 0.4
+    color: "#2196f3"
+    fill_raw: last
+    show:
+      in_legend: false
+  
+  # Heating Mode (Red background)
+  - entity: sensor.hp_mode_heating_max
+    name: Heating
+    type: area
+    yaxis_id: temp
+    curve: stepline
+    stroke_width: 0
+    opacity: 0.4
+    color: "#f44336"
+    fill_raw: last
+    show:
+      legend_value: false
+      in_header: false
+  
+  - entity: sensor.hp_mode_heating_min
+    type: area
+    yaxis_id: temp
+    curve: stepline
+    stroke_width: 0
+    opacity: 0.4
+    color: "#f44336"
+    fill_raw: last
+    show:
+      in_legend: false
+  
+  # Defrost Mode (Cyan background)
+  - entity: sensor.hp_mode_defrost_max
+    name: Defrost
+    type: area
+    yaxis_id: temp
+    curve: stepline
+    stroke_width: 0
+    opacity: 0.4
+    color: "#00bcd4"
+    fill_raw: last
+    show:
+      legend_value: false
+      in_header: false
+  
+  - entity: sensor.hp_mode_defrost_min
+    type: area
+    yaxis_id: temp
+    curve: stepline
+    stroke_width: 0
+    opacity: 0.4
+    color: "#00bcd4"
+    fill_raw: last
+    show:
+      in_legend: false
+  
+  # DHW Mode (Orange background)
+  - entity: sensor.hp_mode_dhw_max
+    name: DHW
+    type: area
+    yaxis_id: temp
+    curve: stepline
+    stroke_width: 0
+    opacity: 0.4
+    color: "#ff9800"
+    fill_raw: last
+    show:
+      legend_value: false
+      in_header: false
+  
+  - entity: sensor.hp_mode_dhw_min
+    type: area
+    yaxis_id: temp
+    curve: stepline
+    stroke_width: 0
+    opacity: 0.4
+    color: "#ff9800"
+    fill_raw: last
+    show:
+      in_legend: false
+  
+  # Delta T actual value (White line on top)
+  - entity: sensor.heat_pump_delta_t
+    name: Delta T
+    yaxis_id: temp
+    stroke_width: 2
+    color: "#ffffff"
+
+# ============================================
+# Result
+# ============================================
+# You'll see a graph with:
+# - Blue background when in cooling mode
+# - Red background when in heating mode
+# - Cyan background during defrost
+# - Orange background when heating DHW
+# - White line showing the actual Delta T value
+#
+# The colored backgrounds extend from -6.5°C to +6.5°C
+# to fully fill the graph area
