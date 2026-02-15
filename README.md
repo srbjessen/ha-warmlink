@@ -207,7 +207,7 @@ template:
 
 **Problem:**
 - If you use the WarmLink mobile app AND Home Assistant with the same account, one will be logged out
-- Guest accounts (invited users) can see devices in the app but **API returns no devices**
+- Guest accounts (invited users) can see devices in the app but **API returns no devices** in Home Assistant.
 
 **Solutions:**
 
