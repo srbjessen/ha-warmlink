@@ -22,7 +22,6 @@
   "A38": "Low Pressure Limiting Freq",
   "A39": "Max Current Value",
   "A40": "Rated Water Flow",
-
   "C01": "Manual Comp Frequency",
   "C02": "Min Comp Frequency",
   "C03": "Max Comp Frequency",
@@ -34,7 +33,6 @@
   "C10": "Min Comp Freq Heat Low AT",
   "C11": "Max Comp Freq Cool High AT",
   "C12": "Max Comp Freq DHW",
-
   "D01": "AT Start Defrost",
   "D02": "Heat Time Before Defrost",
   "D03": "Interval Defrost Cycles",
@@ -63,7 +61,6 @@
   "D25": "Max Water Temp Drop Defrost",
   "D26": "Enable Defrost Comm Cascade",
   "D30": "Bottom Heater Off Delay",
-
   "E01": "EEV Adjust Mode",
   "E02": "Target Superheat Heating",
   "E03": "EEV Initial Steps Heating",
@@ -86,7 +83,6 @@
   "E17": "Defrost EEV Steps",
   "E18": "Target Superheat Cooling",
   "E19": "EEV Adjust Range Smart",
-
   "F01": "Fan Motor Type",
   "F02": "Coil Temp Max Fan Cooling",
   "F03": "Coil Temp Min Fan Cooling",
@@ -105,13 +101,11 @@
   "F27": "Fan Motor Power Curve",
   "F28": "CT Reduce to One Fan Cool",
   "F29": "CT Stop Single Fan Cooling",
-
   "G01": "Disinfection Water Temp",
   "G02": "Disinfection Duration",
   "G03": "Disinfection Start Time",
   "G04": "Disinfection Interval",
   "G05": "Enable Disinfection",
-
   "H01": "Enable Power-off Memory",
   "H05": "Enable Cooling Function",
   "H07": "Display/Remote Control",
@@ -134,12 +128,10 @@
   "H42": "AT Bottom Heater On",
   "H43": "Normal/Eco Mode",
   "H45": "System Config",
-
   "O01~014": "Output Status 1-14",
   "O01~023": "Output Status 1-23",
   "O15": "EEV Steps",
   "O17": "EEV (EVI) Steps",
-
   "P01": "Circ Pump Operation Mode",
   "P02": "Interval Time",
   "P03": "Operation Duration",
@@ -154,7 +146,6 @@
   "P14": "Refill Valve Duration",
   "P15": "Target Water Pressure",
   "P16": "Stop Refill Pressure Diff",
-
   "R01": "DHW Target Temp",
   "R02": "Heating Target Temp",
   "R03": "Cooling Target Temp",
@@ -192,9 +183,7 @@
   "R72": "Room Temp Diff Standby Heat",
   "R73": "Room Temp Diff On Cooling",
   "R74": "Room Temp Diff Standby Cool",
-
   "S01~S10": "Switch Status 1-10",
-
   "T01": "Inlet Water Temp",
   "T02": "Outlet Water Temp",
   "T03": "Coil Temp",
@@ -229,7 +218,6 @@
   "T46": "Temp Sensor 46",
   "T47": "Temp Sensor 47",
   "T48": "Temp Sensor 48",
-
   "Z01": "Enable Multi-Zone",
   "Z02": "Zone 1 Target RT",
   "Z03": "Zone 1 RT Diff Start",
@@ -250,7 +238,6 @@
   "Z19": "Diff No Pump Low Water",
   "Z20": "Enable Zone 1 Pump Cool",
   "Z21": "Zone Control Mode",
-
   "KG1": "Relay Status 1",
   "KG2": "Relay Status 2",
   "KG3": "Relay Status 3",
@@ -266,14 +253,12 @@
   "KG13~KG28": "Relay Status 13-28",
   "KG29~KG44": "Relay Status 29-44",
   "KG45~KG60": "Relay Status 45-60",
-
   "DP1": "Display Parameter 1",
   "DP2": "Display Parameter 2",
   "DP3": "Display Parameter 3",
   "DP4": "Display Parameter 4",
   "DP5": "Display Parameter 5",
   "DP6": "Display Parameter 6",
-
   "M1 Mode": "Timer 1 Mode",
   "M1 Start": "Timer 1 Start",
   "M1 End": "Timer 1 End",
@@ -319,7 +304,6 @@
   "M1_2 Enalbe": "Enable Timer 1-2",
   "M3_4 Enalbe": "Enable Timer 3-4",
   "M5_6 Enalbe": "Enable Timer 5-6",
-
   "W1 Start": "Week Sched 1 Start",
   "W1 End": "Week Sched 1 End",
   "W1_2 Enalbe": "Enable Week Sched 1-2",
@@ -328,7 +312,6 @@
   "W3 Start": "Week Sched 3 Start",
   "W3 End": "Week Sched 3 End",
   "W3 Enalbe": "Enable Week Sched 3",
-
   "SG01": "Smart Grid Param 1",
   "SG02": "Smart Grid Param 2",
   "SG03": "Smart Grid Param 3",
@@ -338,25 +321,21 @@
   "SG07": "Smart Grid Param 7",
   "SG08": "Smart Grid Param 8",
   "SG Status": "Smart Grid Status",
-
   "Timer_Mute_On_En": "Silent Timer On Enable",
   "Timer_Mute_Off_En": "Silent Timer Off Enable",
   "TimerMuteOnHour": "Silent Timer On Hour",
   "TimerMuteOnMinute": "Silent Timer On Minute",
   "TimerMuteOffHour": "Silent Timer Off Hour",
   "TimerMuteOffMinute": "Silent Timer Off Minute",
-
   "Fault1": "Fault Code 1",
   "Fault5": "Fault Code 5",
   "Fault6": "Fault Code 6",
-
   "Zone 1 Room Temp": "Zone 1 Room Temp",
   "Zone 2 Room Temp": "Zone 2 Room Temp",
   "Zone 2 Mixing Temp": "Zone 2 Mixing Temp",
   "Zone 2 Water Target": "Zone 2 Water Target",
   "Zone 2 Cure Slope": "Zone 2 Curve Slope",
   "Zone 2 Curve Offset": "Zone 2 Curve Offset",
-
   "Power": "Power Consumption",
   "Mode": "Operating Mode",
   "ModeState": "Mode State",
@@ -366,9 +345,49 @@
   "compensate_offset": "Weather Comp Offset",
   "code_version": "Code Version",
   "MainBoard Version": "Mainboard Version",
-
   "1206": "Parameter 1206",
   "1208": "Parameter 1208",
   "2014": "Parameter 2014",
-  "2146": "Parameter 2146"
+  "2146": "Parameter 2146",
+  "E001": "High Pressure Protection",
+  "E002": "Low Pressure Protection",
+  "E003": "Compressor Overload",
+  "E004": "Water Flow Switch Error",
+  "E005": "Outdoor Temperature Sensor Error",
+  "E006": "Indoor Temperature Sensor Error",
+  "E011": "Communication Error",
+  "E012": "Phase Sequence/Phase Loss",
+  "E015": "Water Temperature Too High",
+  "E016": "Water Temperature Too Low",
+  "E020": "Discharge Temperature Sensor Error",
+  "E021": "Discharge Temperature Too High",
+  "E022": "Suction Temperature Sensor Error",
+  "E023": "Outdoor Coil Temperature Sensor Error",
+  "E024": "Indoor Coil Temperature Sensor Error",
+  "E025": "Compressor Current Sensor Error",
+  "E026": "High Voltage Protection",
+  "E027": "Low Voltage Protection",
+  "E028": "Compressor Running Time Exceeded",
+  "E029": "Antifreeze Protection",
+  "E030": "Water Pump Alarm",
+  "E031": "Exhaust Superheat Too High",
+  "E032": "Suction Superheat Too Low",
+  "E033": "EEV Driver Error",
+  "E034": "Oil Return Protection",
+  "E035": "High Pressure Switch Protection",
+  "E036": "Low Pressure Switch Protection",
+  "E037": "Inverter Module Protection",
+  "E038": "Inverter Communication Error",
+  "E039": "PFC Module Protection",
+  "E040": "Compressor Phase Current Unbalance",
+  "E041": "DC Bus Voltage Too High",
+  "E042": "DC Bus Voltage Too Low",
+  "E043": "Compressor Stall",
+  "E044": "Inverter IPM Protection",
+  "E045": "Inverter Overheating Protection",
+  "Fault2": "Fault Code 2",
+  "Fault3": "Fault Code 3",
+  "Fault4": "Fault Code 4",
+  "Fault7": "Fault Code 7",
+  "Fault8": "Fault Code 8"
 }

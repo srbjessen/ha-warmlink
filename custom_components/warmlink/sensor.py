@@ -12,8 +12,8 @@ _logged_missing_translations = set()
 _logged_missing_units = set()
 _logged_missing_icons = set()
 
-def load_sensor_translations(language):
-    """Load sensor translations for specified language."""
+def _load_sensor_translations_sync(language):
+    """Synchronous helper to load sensor translations."""
     path = os.path.join(_TRANSLATIONS_PATH, f"sensor_{language}.json")
     try:
         with open(path) as f:
@@ -31,6 +31,10 @@ def load_sensor_translations(language):
         except Exception as e2:
             LOGGER.error(f"WarmLink: Failed to load English fallback translations: {e2}")
             return {}
+
+async def async_load_sensor_translations(hass, language):
+    """Async-safe wrapper for loading sensor translations."""
+    return await hass.async_add_executor_job(_load_sensor_translations_sync, language)
 
 try:
     with open(_UNITS_PATH) as f:
@@ -59,6 +63,7 @@ def make_entity_id_friendly(text):
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
+from homeassistant.core import callback
 from .const import DOMAIN
 
 # Map units to device classes
@@ -79,7 +84,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     
     # Get language from config, default to English
     language = entry.data.get("language", "en")
-    translations = load_sensor_translations(language)
+    translations = await async_load_sensor_translations(hass, language)
     
     entities = []
     codes_without_translation = []
@@ -129,15 +134,17 @@ class WarmlinkSensor(CoordinatorEntity, SensorEntity):
         # Get description from translations (fallback to code itself)
         desc = translations.get(code, code)
         desc_friendly = make_entity_id_friendly(desc)
+        code_friendly = make_entity_id_friendly(code)
         
         # Get unit and icon from mappings
         unit = _UNITS.get(code)
         icon = _ICONS.get(code)
         
         # Set attributes
-        self._attr_unique_id = f"{entry.entry_id}_{self.code}"
-        self._attr_name = f"{desc} [{self.code}]"
-        self.entity_id = f"sensor.warmlink_{desc_friendly}_{self.code.lower()}"
+        self._attr_unique_id = f"{entry.entry_id}_{code_friendly}"
+        self._attr_name = f"{desc} [{code}]"
+        # DON'T set entity_id manually - let Home Assistant auto-generate it!
+        # Home Assistant will create entity_id based on name and unique_id
         
         # Set icon (default to help-circle for unmapped codes)
         self._attr_icon = icon if icon else "mdi:help-circle-outline"
@@ -180,21 +187,32 @@ class WarmlinkSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        # Always available if we have a cached value
-        # This prevents unavailable states during updates
-        return self._cached_value is not None or self.coordinator.last_update_success
+        # Entity is available if:
+        # 1. We have a cached value (even if coordinator is updating), OR
+        # 2. Coordinator last update was successful
+        # This ensures sensors stay available during updates
+        if self._cached_value is not None:
+            return True
+        return self.coordinator.last_update_success
     
     @property
     def native_value(self):
         """Return the state of the sensor."""
+        # Try to get fresh data from coordinator
         if self.coordinator.data:
             for i in self.coordinator.data:
                 if i["code"] == self.code:
                     value = i.get("value")
-                    if value is not None:
-                        self._cached_value = value  # Update cache
+                    # Convert empty strings to None for numeric sensors
+                    if value == '' or value == 'null' or value is None:
+                        # Don't update cache with None - keep old value
+                        break
+                    # Update cache with valid value
+                    self._cached_value = value
                     return value
-        # Return cached value if no new data
+        
+        # If we couldn't get fresh data, return cached value
+        # This prevents "unavailable" states during updates
         return self._cached_value
     
     @property
@@ -213,3 +231,11 @@ class WarmlinkSensor(CoordinatorEntity, SensorEntity):
                     return attrs
         # Return cached attributes if no new data
         return self._cached_attrs
+    
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        # Only write state if we actually have data
+        # This prevents unnecessary state changes during updates
+        if self.coordinator.data or self._cached_value is not None:
+            self.async_write_ha_state()

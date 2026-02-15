@@ -22,7 +22,6 @@
   "A38": "Lavtryk Begræns Frek",
   "A39": "Maks Strøm Værdi",
   "A40": "Nominel Vandflow",
-
   "C01": "Manuel Komp Frekvens",
   "C02": "Min Komp Frekvens",
   "C03": "Maks Komp Frekvens",
@@ -34,7 +33,6 @@
   "C10": "Min Komp Frek Varm Lav Udel",
   "C11": "Maks Komp Frek Køl Høj Udel",
   "C12": "Maks Komp Frek VVB",
-
   "D01": "Udeluft Start Afrimning",
   "D02": "Varme Tid Før Afrimning",
   "D03": "Interval Afrimning Cyklus",
@@ -63,7 +61,6 @@
   "D25": "Maks Vand Temp Fald Afrim",
   "D26": "Aktiver Afrim Komm Kaskade",
   "D30": "Bundvarmer Sluk Forsinkelse",
-
   "E01": "EEV Juster Tilstand",
   "E02": "Mål Overhedning Varme",
   "E03": "EEV Start Trin Varme",
@@ -86,7 +83,6 @@
   "E17": "Afrimning EEV Trin",
   "E18": "Mål Overhedning Køl",
   "E19": "EEV Juster Område Smart",
-
   "F01": "Blæser Motor Type",
   "F02": "Fordamper Temp Maks Blæs Køl",
   "F03": "Fordamper Temp Min Blæs Køl",
@@ -105,13 +101,11 @@
   "F27": "Blæser Motor Effekt Kurve",
   "F28": "Fordamper Reducer til 1 Blæs",
   "F29": "Fordamper Stop Enkelt Blæs",
-
   "G01": "Desinfektion Vand Temp",
   "G02": "Desinfektion Varighed",
   "G03": "Desinfektion Start Tid",
   "G04": "Desinfektion Interval",
   "G05": "Aktiver Desinfektion",
-
   "H01": "Aktiver Strømsvigt Hukomm",
   "H05": "Aktiver Køle Funktion",
   "H07": "Display/Fjernbetjening",
@@ -134,12 +128,10 @@
   "H42": "Udeluft Bundvarmer Tænd",
   "H43": "Normal/Eco Tilstand",
   "H45": "System Konfiguration",
-
   "O01~014": "Udgang Status 1-14",
   "O01~023": "Udgang Status 1-23",
   "O15": "EEV Trin",
   "O17": "EEV (EVI) Trin",
-
   "P01": "Cirk Pumpe Driftstilstand",
   "P02": "Interval Tid",
   "P03": "Driftstid",
@@ -154,7 +146,6 @@
   "P14": "Påfyld Ventil Varighed",
   "P15": "Mål Vandtryk",
   "P16": "Stop Påfyld Tryk Diff",
-
   "R01": "VVB Mål Temp",
   "R02": "Varme Mål Temp",
   "R03": "Køle Mål Temp",
@@ -192,9 +183,7 @@
   "R72": "Rum Temp Diff Standby Varme",
   "R73": "Rum Temp Diff Tænd Køl",
   "R74": "Rum Temp Diff Standby Køl",
-
   "S01~S10": "Kontakt Status 1-10",
-
   "T01": "Indløb Vand Temp",
   "T02": "Udløb Vand Temp",
   "T03": "Fordamper Temp",
@@ -229,7 +218,6 @@
   "T46": "Temp Sensor 46",
   "T47": "Temp Sensor 47",
   "T48": "Temp Sensor 48",
-
   "Z01": "Aktiver Multi-Zone",
   "Z02": "Zone 1 Mål Rum Temp",
   "Z03": "Zone 1 Rum Temp Diff Start",
@@ -250,7 +238,6 @@
   "Z19": "Diff Ingen Pumpe Lav Vand",
   "Z20": "Aktiver Zone 1 Pumpe Køl",
   "Z21": "Zone Kontrol Tilstand",
-
   "KG1": "Relæ Status 1",
   "KG2": "Relæ Status 2",
   "KG3": "Relæ Status 3",
@@ -266,14 +253,12 @@
   "KG13~KG28": "Relæ Status 13-28",
   "KG29~KG44": "Relæ Status 29-44",
   "KG45~KG60": "Relæ Status 45-60",
-
   "DP1": "Display Parameter 1",
   "DP2": "Display Parameter 2",
   "DP3": "Display Parameter 3",
   "DP4": "Display Parameter 4",
   "DP5": "Display Parameter 5",
   "DP6": "Display Parameter 6",
-
   "M1 Mode": "Timer 1 Tilstand",
   "M1 Start": "Timer 1 Start",
   "M1 End": "Timer 1 Slut",
@@ -319,7 +304,6 @@
   "M1_2 Enalbe": "Aktiver Timer 1-2",
   "M3_4 Enalbe": "Aktiver Timer 3-4",
   "M5_6 Enalbe": "Aktiver Timer 5-6",
-
   "W1 Start": "Uge Skema 1 Start",
   "W1 End": "Uge Skema 1 Slut",
   "W1_2 Enalbe": "Aktiver Uge Skema 1-2",
@@ -328,7 +312,6 @@
   "W3 Start": "Uge Skema 3 Start",
   "W3 End": "Uge Skema 3 Slut",
   "W3 Enalbe": "Aktiver Uge Skema 3",
-
   "SG01": "Smart Grid Param 1",
   "SG02": "Smart Grid Param 2",
   "SG03": "Smart Grid Param 3",
@@ -338,25 +321,21 @@
   "SG07": "Smart Grid Param 7",
   "SG08": "Smart Grid Param 8",
   "SG Status": "Smart Grid Status",
-
   "Timer_Mute_On_En": "Stille Timer Tænd Aktiv",
   "Timer_Mute_Off_En": "Stille Timer Sluk Aktiv",
   "TimerMuteOnHour": "Stille Timer Tænd Time",
   "TimerMuteOnMinute": "Stille Timer Tænd Minut",
   "TimerMuteOffHour": "Stille Timer Sluk Time",
   "TimerMuteOffMinute": "Stille Timer Sluk Minut",
-
   "Fault1": "Fejlkode 1",
   "Fault5": "Fejlkode 5",
   "Fault6": "Fejlkode 6",
-
   "Zone 1 Room Temp": "Zone 1 Rum Temp",
   "Zone 2 Room Temp": "Zone 2 Rum Temp",
   "Zone 2 Mixing Temp": "Zone 2 Shunt Temp",
   "Zone 2 Water Target": "Zone 2 Vand Mål",
   "Zone 2 Cure Slope": "Zone 2 Kurve Hældning",
   "Zone 2 Curve Offset": "Zone 2 Kurve Offset",
-
   "Power": "Strømforbrug",
   "Mode": "Driftstilstand",
   "ModeState": "Tilstand Status",
@@ -366,9 +345,49 @@
   "compensate_offset": "Vejrkomp Offset",
   "code_version": "Kode Version",
   "MainBoard Version": "Hovedkort Version",
-
   "1206": "Parameter 1206",
   "1208": "Parameter 1208",
   "2014": "Parameter 2014",
-  "2146": "Parameter 2146"
+  "2146": "Parameter 2146",
+  "E001": "Højtryks Beskyttelse",
+  "E002": "Lavtryks Beskyttelse",
+  "E003": "Kompressor Overbelastning",
+  "E004": "Vandflow Switch Fejl",
+  "E005": "Udendørs Temperatur Sensor Fejl",
+  "E006": "Indendørs Temperatur Sensor Fejl",
+  "E011": "Kommunikationsfejl",
+  "E012": "Fasefølge/Fasetab",
+  "E015": "Vandtemperatur For Høj",
+  "E016": "Vandtemperatur For Lav",
+  "E020": "Udblæsningstemperatur Sensor Fejl",
+  "E021": "Udblæsningstemperatur For Høj",
+  "E022": "Sugetemperatur Sensor Fejl",
+  "E023": "Udendørs Spole Temperatur Sensor Fejl",
+  "E024": "Indendørs Spole Temperatur Sensor Fejl",
+  "E025": "Kompressor Strøm Sensor Fejl",
+  "E026": "Højspændings Beskyttelse",
+  "E027": "Lavspændings Beskyttelse",
+  "E028": "Kompressor Driftstid Overskredet",
+  "E029": "Frostbeskyttelse",
+  "E030": "Vandpumpe Alarm",
+  "E031": "Udstødning Overhedning For Høj",
+  "E032": "Suge Overhedning For Lav",
+  "E033": "EEV Driver Fejl",
+  "E034": "Olieretur Beskyttelse",
+  "E035": "Højtrykskontakt Beskyttelse",
+  "E036": "Lavtrykskontakt Beskyttelse",
+  "E037": "Inverter Modul Beskyttelse",
+  "E038": "Inverter Kommunikationsfejl",
+  "E039": "PFC Modul Beskyttelse",
+  "E040": "Kompressor Fase Strøm Ubalance",
+  "E041": "DC Bus Spænding For Høj",
+  "E042": "DC Bus Spænding For Lav",
+  "E043": "Kompressor Gik i Stå",
+  "E044": "Inverter IPM Beskyttelse",
+  "E045": "Inverter Overophedning Beskyttelse",
+  "Fault2": "Fejlkode 2",
+  "Fault3": "Fejlkode 3",
+  "Fault4": "Fejlkode 4",
+  "Fault7": "Fejlkode 7",
+  "Fault8": "Fejlkode 8"
 }

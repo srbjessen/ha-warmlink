@@ -36,9 +36,11 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=timedelta(seconds=UPDATE_INTERVAL)
         )
+        LOGGER.info(f"WarmLink: Coordinator initialized with {UPDATE_INTERVAL}s update interval")
     
     async def _async_update_data(self):
         """Fetch data from API."""
+        LOGGER.info(f"WarmLink: Starting scheduled update at {self.hass.loop.time()}")
         try:
             # Only fetch device list if we don't have device_code cached
             if not self._device_code:

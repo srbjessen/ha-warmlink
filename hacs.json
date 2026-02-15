@@ -1,7 +1,8 @@
 {
-  "name": "WarmLink Heat Pump",
+  "name": "WarmLink",
+  "content_in_root": false,
+  "filename": "warmlink",
   "render_readme": true,
-  "domains": ["sensor"],
-  "homeassistant": "2024.1.0",
-  "iot_class": "Cloud Polling"
+  "country": ["DK"],
+  "homeassistant": "2024.1.0"
 }
