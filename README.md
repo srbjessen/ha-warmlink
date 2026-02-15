@@ -199,6 +199,54 @@ template:
 
 ---
 
+## Known Limitations
+
+### Single Session Limitation
+
+**⚠️ The WarmLink API only allows ONE active session per account at a time.**
+
+**Problem:**
+- If you use the WarmLink mobile app AND Home Assistant with the same account, one will be logged out
+- Guest accounts (invited users) can see devices in the app but **API returns no devices**
+
+**Solutions:**
+
+**Option 1: Dedicated Home Assistant Account (Recommended)**
+
+If you want to use BOTH the mobile app and Home Assistant:
+
+1. **Create a second WarmLink account** (Account B)
+2. **Keep your primary account** (Account A) as owner
+3. **Invite Account B** to your home (from Account A in the app)
+4. **Use Account A credentials** in Home Assistant integration
+5. **Use Account B** to log into the mobile app
+
+**Result:**
+- ✅ Home Assistant works with Account A
+- ✅ Mobile app works with Account B  
+- ✅ Both can monitor the heat pump
+- ✅ No session conflicts
+
+**Option 2: Home Assistant Only**
+
+If you don't need the mobile app:
+
+1. **Use your primary account** in Home Assistant
+2. **Log out** of the mobile app (or don't install it)
+3. **Single session** - no conflicts
+
+**Option 3: Mobile App Only**
+
+If you prefer the mobile app and don't need Home Assistant integration, just use the app.
+
+**Technical Details:**
+- The WarmLink API uses session-based authentication
+- Each login invalidates the previous session
+- Guest accounts have limited API access (view-only in app, no API device list)
+- This is a WarmLink API limitation, not an integration issue
+
+---
+
 ## Troubleshooting
 
 ### Integration Not Loading
@@ -219,6 +267,32 @@ template:
 ### Entity ID Changes (v70 Migration)
 
 If you upgraded to v70, entity IDs for 61 sensors changed. See [CHANGELOG.md](CHANGELOG.md) for migration guide.
+
+### "No Devices Returned from API" Error
+
+**Error Message:**
+```
+Failed setup, will retry: No devices returned from API
+```
+
+**Causes:**
+
+1. **Using a guest/invited account** - Guest accounts cannot access devices via API
+   - **Solution:** Use the owner account credentials in Home Assistant
+   
+2. **Session conflict** - Another session (mobile app) is active
+   - **Solution:** Use dedicated accounts (see [Known Limitations](#known-limitations))
+   
+3. **Account has no devices** - No heat pump associated with account
+   - **Solution:** Verify the account owns or has been invited to a home with a heat pump
+
+4. **API connection issues**
+   - **Solution:** Check network connectivity and credentials
+
+**Quick Fix:**
+- Use the **owner account** (the account that created the home)
+- Log out of the mobile app before configuring Home Assistant
+- After HA setup, create a second account for the mobile app
 
 ---
 
