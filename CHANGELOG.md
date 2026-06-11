@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Power on/off switch** (`switch.warmlink_power`) to control the heat pump from Home Assistant
+- **DHW summer control example** (`examples/automation_dhw_summer_control.yaml`) — power-cycles the pump in DHW-only mode without interrupting an active heating cycle
+- Examples section in the README linking the dashboard, ApexCharts, and automation example files
+
+### Changed
+- **Update interval reduced from 5 minutes to 2 minutes** (`UPDATE_INTERVAL` 300 → 120 s) for more responsive data
+
 ## [70.0] - 2025-02-15
 
 ### Changed (BREAKING)
