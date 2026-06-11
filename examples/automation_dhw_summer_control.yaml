@@ -1,0 +1,200 @@
+# DHW Summer Control — "let the pump be a pump, let HA be the watchdog"
+#
+# Purpose
+#   In summer, when the heat pump runs in DHW-only mode, it can sit powered-on in
+#   its hot-water standby loop and periodically sample the tank. This automation
+#   removes that idle sampling: it cuts power once the tank is hot and restores
+#   power when the tank cools — without ever interrupting an active heating cycle.
+#
+# Design philosophy
+#   - HA never stops a running compressor mid-cycle. It only powers the pump OFF
+#     after the tank has held at/above target for 10 minutes. By then the pump has
+#     reached its goal and shut its own compressor down gracefully.
+#   - switch.warmlink_power maps to the pump's "Power" code, which is a SOFT off
+#     (the same as the app's Off button) — the firmware still runs its own
+#     pump-down / post-circulation. It is NOT a hard power cut.
+#   - Power is restored when the tank drops to (target - power-on diff); the pump
+#     then detects the missing heat and runs its own full cycle back up to target.
+#
+# Entities used — DEFAULT WarmLink entity IDs. Adjust to match YOUR installation;
+# yours may differ (e.g. by device nickname or a numeric "_2" suffix):
+#   sensor.warmlink_dhw_temp_t08                — DHW tank temperature (T08)
+#   sensor.warmlink_dhw_target_temp_r01         — DHW target temp / setpoint (R01)
+#   sensor.warmlink_temp_diff_power_on_dhw_r16  — power-on hysteresis (R16)
+#   sensor.warmlink_operating_mode_mode         — operating mode (Mode); 0 = DHW-only *
+#   switch.warmlink_power                        — Power on/off switch
+#
+#   * Verify which Mode value means "DHW only" on YOUR unit before relying on it.
+#     The condition below only runs the automation in that mode, so it never fights
+#     your winter heating schedule.
+
+
+# ============================================================================
+# OPTION A (recommended): simple edge-based control
+# ============================================================================
+# Paste into automations.yaml (or Settings -> Automations -> Edit in YAML).
+
+- id: warmlink_dhw_summer_control
+  alias: "WarmLink DHW summer control (DHW-only mode)"
+  description: >
+    Cuts power to the heat pump when the DHW tank has held at/above target for
+    10 minutes, and restores power when it drops to (target - power-on diff).
+    Never interrupts an active heating cycle.
+  mode: single
+  trigger:
+    # Tank is cold -> power on immediately so the pump can start its own cycle.
+    - platform: template
+      id: cold
+      value_template: >
+        {{ states('sensor.warmlink_dhw_temp_t08') | float(99)
+           <= states('sensor.warmlink_dhw_target_temp_r01') | float(50)
+              - states('sensor.warmlink_temp_diff_power_on_dhw_r16') | float(5) }}
+    # Tank has held at/above target for 10 continuous minutes -> safe to power off.
+    - platform: template
+      id: hot
+      value_template: >
+        {{ states('sensor.warmlink_dhw_temp_t08') | float(0)
+           >= states('sensor.warmlink_dhw_target_temp_r01') | float(50) }}
+      for: "00:10:00"
+  condition:
+    # Only act in DHW-only mode (see note above about the Mode value).
+    - condition: state
+      entity_id: sensor.warmlink_operating_mode_mode
+      state: "0"
+  action:
+    - choose:
+        - conditions: "{{ trigger.id == 'cold' }}"
+          sequence:
+            - action: switch.turn_on
+              target:
+                entity_id: switch.warmlink_power
+        - conditions: "{{ trigger.id == 'hot' }}"
+          sequence:
+            - action: switch.turn_off
+              target:
+                entity_id: switch.warmlink_power
+
+# Why the float() defaults are chosen the way they are:
+#   cold-check defaults T08 to 99 -> if the sensor is unavailable it reads "not
+#     cold", so the pump is never switched ON on bad data.
+#   hot-check defaults T08 to 0   -> if unavailable it reads "not hot", so the
+#     pump is never switched OFF on bad data.
+#   Both failure modes are safe.
+#
+# Power-failure / HA-restart behaviour:
+#   These are EDGE triggers (they fire on a transition). After a restart where the
+#   pump comes back powered-on with an already-hot tank, the 'hot' trigger won't
+#   re-fire (no new edge), so the pump may stay on until the tank next drops and
+#   the cycle runs again — it self-heals within one hot-water draw. If you want it
+#   fully restart-proof, use Option B instead.
+
+
+# ============================================================================
+# OPTION B (optional): restart-proof variant — latch + periodic enforce
+# ============================================================================
+# Adds an input_boolean as the single source of truth, plus a "reconcile"
+# automation that re-asserts the switch every 2 minutes. This survives restarts
+# and power blips.
+#
+# Note: HA evaluating state every 2 minutes does NOT make the pump sample the
+# tank — the sampling we avoid is the pump's own behaviour while it is powered on.
+
+# 1) Create the helper (configuration.yaml, or Settings -> Devices -> Helpers):
+---
+input_boolean:
+  dhw_pump_enabled:
+    name: DHW pump enabled (summer control)
+    icon: mdi:water-boiler
+
+# 2) "Decide" automation — sets the desired state on the same cold/hot logic:
+---
+- id: warmlink_dhw_summer_decide
+  alias: "WarmLink DHW summer control — decide"
+  mode: single
+  trigger:
+    - platform: template
+      id: cold
+      value_template: >
+        {{ states('sensor.warmlink_dhw_temp_t08') | float(99)
+           <= states('sensor.warmlink_dhw_target_temp_r01') | float(50)
+              - states('sensor.warmlink_temp_diff_power_on_dhw_r16') | float(5) }}
+    - platform: template
+      id: hot
+      value_template: >
+        {{ states('sensor.warmlink_dhw_temp_t08') | float(0)
+           >= states('sensor.warmlink_dhw_target_temp_r01') | float(50) }}
+      for: "00:10:00"
+  condition:
+    - condition: state
+      entity_id: sensor.warmlink_operating_mode_mode
+      state: "0"
+  action:
+    - choose:
+        - conditions: "{{ trigger.id == 'cold' }}"
+          sequence:
+            - action: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.dhw_pump_enabled
+        - conditions: "{{ trigger.id == 'hot' }}"
+          sequence:
+            - action: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.dhw_pump_enabled
+
+# 3) "Enforce" automation — drives the switch to match the latch, and re-checks
+#    every 2 minutes so it self-heals after a restart or power blip:
+- id: warmlink_dhw_summer_enforce
+  alias: "WarmLink DHW summer control — enforce"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: input_boolean.dhw_pump_enabled
+    - platform: time_pattern
+      minutes: "/2"
+  condition:
+    - condition: state
+      entity_id: sensor.warmlink_operating_mode_mode
+      state: "0"
+  action:
+    - choose:
+        # Latch wants ON but switch is OFF -> turn it on.
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.dhw_pump_enabled
+              state: "on"
+            - condition: state
+              entity_id: switch.warmlink_power
+              state: "off"
+          sequence:
+            - action: switch.turn_on
+              target:
+                entity_id: switch.warmlink_power
+        # Latch wants OFF but switch is ON -> turn it off.
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.dhw_pump_enabled
+              state: "off"
+            - condition: state
+              entity_id: switch.warmlink_power
+              state: "on"
+          sequence:
+            - action: switch.turn_off
+              target:
+                entity_id: switch.warmlink_power
+
+
+# ============================================================================
+# Tuning & verification
+# ============================================================================
+# - On threshold = R01 - R16 (e.g. target 50 C, diff 5 C -> powers on at 45 C).
+# - Off after the tank holds >= R01 for a continuous 10 minutes. If the tank dips
+#   below target during those 10 minutes, the timer resets, so it means "stably
+#   reached target", not just "touched it once".
+# - Worth testing once: while the pump is actively making hot water, turn
+#   switch.warmlink_power off and watch whether the compressor stops at once and
+#   then runs a post-circulation (graceful shutdown). Either way, the 10-minute
+#   model never cuts power mid-cycle, so you are covered regardless.
+#
+# Optional refinement: if "ModeState" is an unreliable "is-running" signal on your
+# unit, you can additionally gate the "off" path on the compressor being idle:
+#   {{ states('sensor.warmlink_compressor_frequency_comfreq') | float(0) == 0 }}
