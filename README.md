@@ -14,8 +14,9 @@ Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant 
 
 ✅ **391 Sensors** - Complete monitoring of your heat pump
 ✅ **Fault Code Detection** - 41 fault codes including critical E035
-✅ **Real-time Updates** - Automatic updates every 5 minutes
+✅ **Real-time Updates** - Automatic updates every 2 minutes
 ✅ **Manual Refresh** - On-demand data refresh button
+✅ **Power Control** - Turn the heat pump on/off from Home Assistant
 ✅ **Multi-language** - Danish and English support
 ✅ **No Data Gaps** - Intelligent caching for continuous graphs
 ✅ **Async Operations** - Non-blocking file I/O for performance
@@ -121,6 +122,7 @@ sensor.warmlink_ambient_temp_t04
 sensor.warmlink_mode_state_modestate
 sensor.warmlink_high_pressure_switch_protection_e035
 button.warmlink_refresh_data
+switch.warmlink_power
 ...and 385 more!
 ```
 
@@ -196,6 +198,38 @@ template:
             0
           {% endif %}
 ```
+
+### Power On/Off Control
+
+```yaml
+# Turn the heat pump off (e.g. from an automation)
+service: switch.turn_off
+target:
+  entity_id: switch.warmlink_power
+```
+
+> **Note:** `Power=0` is a *soft* off — the same as pressing Off in the app. The
+> firmware still runs its own graceful shutdown (pump-down / post-circulation).
+> It is **not** a hard power cut.
+
+### DHW Summer Control (Automated Power Cycling)
+
+In summer, a heat pump running in DHW-only mode can sit powered-on in its
+hot-water standby loop and periodically sample the tank. The example automation
+in [`examples/automation_dhw_summer_control.yaml`](examples/automation_dhw_summer_control.yaml)
+removes that idle sampling: it powers the pump **off** once the tank has held at
+target for 10 minutes, and powers it back **on** when the tank cools — without
+ever interrupting an active heating cycle.
+
+### More Examples
+
+See the [`examples/`](examples/) folder for ready-to-use files:
+
+| File | What it does |
+|------|--------------|
+| [`dashboard_overview.yaml`](examples/dashboard_overview.yaml) | A full multi-view dashboard for monitoring the heat pump |
+| [`apexcharts_delta_t.yaml`](examples/apexcharts_delta_t.yaml) | Delta-T graph with colored backgrounds per operating mode |
+| [`automation_dhw_summer_control.yaml`](examples/automation_dhw_summer_control.yaml) | Summer DHW power-cycling automation (described above) |
 
 ---
 
@@ -304,6 +338,7 @@ Failed setup, will retry: No devices returned from API
 custom_components/warmlink/
 ├── __init__.py           # Integration setup
 ├── sensor.py             # Sensor platform
+├── switch.py             # Switch platform (power on/off)
 ├── button.py             # Button platform (refresh)
 ├── coordinator.py        # DataUpdateCoordinator
 ├── config_flow.py        # Configuration flow
@@ -370,4 +405,4 @@ This integration is not officially affiliated with or endorsed by WarmLink or Ze
 **Current Version:** 70.0  
 **Total Sensors:** 391  
 **Supported Languages:** Danish, English  
-**Update Interval:** 5 minutes
+**Update Interval:** 2 minutes
