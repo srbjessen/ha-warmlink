@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Power on/off switch** (`switch.warmlink_power`) to control the heat pump from Home Assistant
 - **DHW summer control example** (`examples/automation_dhw_summer_control.yaml`) — power-cycles the pump in DHW-only mode without interrupting an active heating cycle
+- **DHW efficiency comparison example** (`examples/dhw_efficiency_comparison.yaml`) — logs daily DHW electricity per operating regime to compare deep-cycling vs. maintaining
 - Examples section in the README linking the dashboard, ApexCharts, and automation example files
 
 ### Changed
