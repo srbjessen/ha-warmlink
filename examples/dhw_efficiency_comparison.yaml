@@ -1,0 +1,258 @@
+# DHW Efficiency Comparison — "deep-cycle vs. maintain"
+#
+# PURPOSE
+#   Over weeks, measure the DAILY electricity used for hot-water (DHW) heating
+#   under different operating regimes, so you can answer: is it cheaper to let
+#   the tank cool and reheat deeply (heat pump OFF between cycles — the summer
+#   DHW-only control), or to keep it topped up with smaller, more frequent
+#   cycles (heat pump left running / "maintain")?
+#
+#   You switch the `input_select.dhw_regime` label whenever you change strategy;
+#   every day's DHW energy is averaged under the regime that was active. After a
+#   week or two per regime, the comparison card shows avg kWh/day side by side.
+#
+# WHAT TO COMPARE
+#   The cleanest test is WITHIN the same season — `summer_dhw_only` vs.
+#   `summer_maintain` — because comparing summer vs. winter mixes in the much
+#   larger effect of outdoor temperature on both losses and COP.
+#
+# ACCURACY NOTE (important + reassuring)
+#   We estimate electrical power from AC input voltage x current. That over-reads
+#   vs. true watts (it ignores power factor), but for COMPARING regimes it does
+#   not matter: a consistent bias cancels in the ratio. If you have a real plug/
+#   clamp energy meter for the unit, point STEP 3 at it instead for absolute kWh.
+#
+# CAVEATS
+#   - Compare regimes at SIMILAR ambient and similar hot-water usage. The running
+#     average does not normalise for those — keep an eye on the logged ambient.
+#   - DHW energy is isolated by ModeState == 4 ("making hot water"). Confirm that
+#     value on your unit (see examples/apexcharts_delta_t.yaml for the mode map).
+#
+#   >>> Adjust every entity ID to match your installation. <<<
+#
+# ============================================================================
+# STEP 1 — Helpers   (Settings -> Devices & Services -> Helpers, or YAML below)
+# ============================================================================
+
+# The regime you are currently running. Switch it when you change strategy.
+input_select:
+  dhw_regime:
+    name: DHW Regime
+    icon: mdi:water-boiler
+    initial: summer_dhw_only
+    options:
+      - summer_dhw_only     # heat pump powered OFF between cycles (new control)
+      - summer_maintain     # heat pump left powered, manages DHW itself
+      - winter_heat_dhw     # space heating + DHW both active
+
+# Counts reheat starts per day (a "cycle" = the unit entering DHW mode).
+counter:
+  dhw_reheat_cycles_today:
+    name: DHW Reheat Cycles Today
+    icon: mdi:counter
+
+# Per-regime running averages, filled by the daily automation in STEP 5.
+# One (avg kWh + day count) pair per option above — the suffixes MUST match the
+# input_select option values exactly, because the automation builds the entity
+# id as input_number.dhw_kwh_avg_<regime>.
+input_number:
+  dhw_kwh_avg_summer_dhw_only:
+    name: "Avg kWh/day — summer_dhw_only"
+    min: 0
+    max: 100
+    step: 0.001
+    unit_of_measurement: kWh
+  dhw_days_summer_dhw_only:
+    name: "Days observed — summer_dhw_only"
+    min: 0
+    max: 9999
+    step: 1
+  dhw_kwh_avg_summer_maintain:
+    name: "Avg kWh/day — summer_maintain"
+    min: 0
+    max: 100
+    step: 0.001
+    unit_of_measurement: kWh
+  dhw_days_summer_maintain:
+    name: "Days observed — summer_maintain"
+    min: 0
+    max: 9999
+    step: 1
+  dhw_kwh_avg_winter_heat_dhw:
+    name: "Avg kWh/day — winter_heat_dhw"
+    min: 0
+    max: 100
+    step: 0.001
+    unit_of_measurement: kWh
+  dhw_days_winter_heat_dhw:
+    name: "Days observed — winter_heat_dhw"
+    min: 0
+    max: 9999
+    step: 1
+
+# ============================================================================
+# STEP 2 — Template sensors   (configuration.yaml, under `template:`)
+# ============================================================================
+template:
+  - sensor:
+      # Electrical input power (proxy). phase_factor: 1 = single-phase,
+      # 1.732 (sqrt 3) = three-phase. The exact value does not affect the
+      # regime COMPARISON as long as it is consistent.
+      - name: "Heat Pump Electrical Power"
+        unique_id: heat_pump_electrical_power
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set v = states('sensor.warmlink_ac_input_voltage_t34') | float(0) %}
+          {% set a = states('sensor.warmlink_ac_input_current_t35') | float(0) %}
+          {% set phase_factor = 1 %}
+          {{ (v * a * phase_factor) | round(0) }}
+
+      # Same power, but ONLY while the unit is actively making hot water
+      # (ModeState == 4). This isolates DHW energy even in winter, when space
+      # heating also draws power.
+      - name: "DHW Electrical Power"
+        unique_id: dhw_electrical_power
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% if states('sensor.warmlink_mode_state_modestate') | int(-1) == 4 %}
+            {{ states('sensor.heat_pump_electrical_power') | float(0) }}
+          {% else %}
+            0
+          {% endif %}
+
+# ============================================================================
+# STEP 3 — Energy integration + daily meters + rolling ambient
+# ============================================================================
+sensor:
+  # Riemann-sum integral of DHW power -> cumulative kWh.
+  - platform: integration
+    source: sensor.dhw_electrical_power
+    name: "DHW Electrical Energy"
+    unique_id: dhw_electrical_energy
+    unit_prefix: k
+    unit_time: h
+    method: left
+
+  # (context) whole-unit cumulative kWh — useful in winter when DHW and heating
+  # share the compressor.
+  - platform: integration
+    source: sensor.heat_pump_electrical_power
+    name: "Heat Pump Electrical Energy"
+    unique_id: heat_pump_electrical_energy
+    unit_prefix: k
+    unit_time: h
+    method: left
+
+  # Rolling 24 h mean outdoor temperature — logged each day as the confounder
+  # to keep an eye on when comparing regimes.
+  - platform: statistics
+    name: "Ambient 24h mean"
+    unique_id: ambient_24h_mean
+    entity_id: sensor.warmlink_ambient_temp_t04
+    state_characteristic: mean
+    max_age:
+      hours: 24
+    sampling_size: 2000
+
+utility_meter:
+  dhw_energy_daily:
+    source: sensor.dhw_electrical_energy
+    cycle: daily
+  heat_pump_energy_daily:
+    source: sensor.heat_pump_electrical_energy
+    cycle: daily
+
+# ============================================================================
+# STEP 4 + 5 — Automations   (configuration.yaml, under `automation:`)
+# ============================================================================
+automation:
+  # STEP 4a — count each reheat start.
+  - id: dhw_count_reheat_cycles
+    alias: "DHW: count reheat starts"
+    trigger:
+      - platform: state
+        entity_id: sensor.warmlink_mode_state_modestate
+        to: "4"
+    action:
+      - service: counter.increment
+        target:
+          entity_id: counter.dhw_reheat_cycles_today
+
+  # STEP 4b — reset the daily cycle counter at midnight (after the snapshot).
+  - id: dhw_reset_daily_counter
+    alias: "DHW: reset daily cycle counter"
+    trigger:
+      - platform: time
+        at: "00:00:00"
+    action:
+      - service: counter.reset
+        target:
+          entity_id: counter.dhw_reheat_cycles_today
+
+  # STEP 5 — daily snapshot at 23:55 (just before the utility_meter resets):
+  # fold today's DHW kWh into the running average for the active regime, and
+  # write a logbook line with the day's numbers + the confounding ambient.
+  - id: dhw_daily_snapshot
+    alias: "DHW: daily snapshot + update regime average"
+    trigger:
+      - platform: time
+        at: "23:55:00"
+    variables:
+      regime: "{{ states('input_select.dhw_regime') }}"
+      kwh_today: "{{ states('sensor.dhw_energy_daily') | float(0) }}"
+      cycles: "{{ states('counter.dhw_reheat_cycles_today') | int(0) }}"
+      amb: "{{ states('sensor.ambient_24h_mean') | float(0) | round(1) }}"
+      avg_entity: "input_number.dhw_kwh_avg_{{ regime }}"
+      days_entity: "input_number.dhw_days_{{ regime }}"
+      old_avg: "{{ states(avg_entity) | float(0) }}"
+      old_days: "{{ states(days_entity) | int(0) }}"
+      new_days: "{{ old_days + 1 }}"
+      new_avg: "{{ ((old_avg * old_days + kwh_today) / new_days) | round(3) }}"
+    action:
+      - service: input_number.set_value
+        target:
+          entity_id: "{{ avg_entity }}"
+        data:
+          value: "{{ new_avg }}"
+      - service: input_number.set_value
+        target:
+          entity_id: "{{ days_entity }}"
+        data:
+          value: "{{ new_days }}"
+      - service: logbook.log
+        data:
+          name: "DHW day"
+          entity_id: input_select.dhw_regime
+          message: >
+            regime={{ regime }} · DHW={{ kwh_today | round(2) }} kWh ·
+            cycles={{ cycles }} · avg_ambient={{ amb }}°C ·
+            running avg={{ new_avg }} kWh/day over {{ new_days }} day(s)
+
+# ============================================================================
+# STEP 6 — Comparison card   (add to a dashboard)
+# ============================================================================
+# type: markdown
+# title: DHW efficiency by regime
+# content: |
+#   | Regime | Avg kWh/day | Days |
+#   |---|---|---|
+#   | summer_dhw_only | {{ states('input_number.dhw_kwh_avg_summer_dhw_only') }} | {{ states('input_number.dhw_days_summer_dhw_only') | int }} |
+#   | summer_maintain | {{ states('input_number.dhw_kwh_avg_summer_maintain') }} | {{ states('input_number.dhw_days_summer_maintain') | int }} |
+#   | winter_heat_dhw | {{ states('input_number.dhw_kwh_avg_winter_heat_dhw') }} | {{ states('input_number.dhw_days_winter_heat_dhw') | int }} |
+#
+#   Lower kWh/day **at similar ambient** = more efficient. The cleanest answer
+#   comes from comparing `summer_dhw_only` vs. `summer_maintain` over comparable
+#   weeks. To restart a regime's average, set its two helpers back to 0.
+#
+# ============================================================================
+# OPTIONAL — sharper signal: COP per reheat cycle
+# ============================================================================
+# If you tell me your tank volume (litres), a follow-up version can compute the
+# COP of each individual reheat (heat stored = volume x 1.163 Wh/L/K x rise in
+# T08; electrical energy = integral of DHW power over the cycle). That directly
+# tests whether deep reheats are less efficient than shallow top-ups, without
+# waiting weeks. Ask and it can be added here.
