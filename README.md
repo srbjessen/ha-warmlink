@@ -230,6 +230,7 @@ See the [`examples/`](examples/) folder for ready-to-use files:
 | [`dashboard_overview.yaml`](examples/dashboard_overview.yaml) | A full multi-view dashboard for monitoring the heat pump |
 | [`apexcharts_delta_t.yaml`](examples/apexcharts_delta_t.yaml) | Delta-T graph with colored backgrounds per operating mode |
 | [`automation_dhw_summer_control.yaml`](examples/automation_dhw_summer_control.yaml) | Summer DHW power-cycling automation (described above) |
+| [`dhw_efficiency_comparison.yaml`](examples/dhw_efficiency_comparison.yaml) | Logs daily DHW energy per operating regime to compare deep-cycling vs. maintaining |
 
 ---
 
