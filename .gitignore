@@ -4,3 +4,6 @@
 # Python bytecode / caches
 __pycache__/
 *.py[cod]
+
+# Local Home Assistant automation backups (operational, not part of the repo)
+.ha-automation-backup-*/
