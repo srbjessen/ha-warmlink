@@ -17,6 +17,7 @@ Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant 
 ✅ **Real-time Updates** - Automatic updates every 2 minutes
 ✅ **Manual Refresh** - On-demand data refresh button
 ✅ **Power Control** - Turn the heat pump on/off from Home Assistant
+✅ **Operating-Mode Control** - Writable Mode select (DHW only / Heating + DHW) for seasonal control and the summer anti-thermosiphon trick
 ✅ **Multi-language** - Danish and English support
 ✅ **No Data Gaps** - Intelligent caching for continuous graphs
 ✅ **Async Operations** - Non-blocking file I/O for performance
@@ -123,6 +124,7 @@ sensor.warmlink_mode_state_modestate
 sensor.warmlink_high_pressure_switch_protection_e035
 button.warmlink_refresh_data
 switch.warmlink_power
+select.warmlink_operating_mode
 ...and 385 more!
 ```
 
@@ -211,6 +213,31 @@ target:
 > **Note:** `Power=0` is a *soft* off — the same as pressing Off in the app. The
 > firmware still runs its own graceful shutdown (pump-down / post-circulation).
 > It is **not** a hard power cut.
+
+### Operating-Mode Control
+
+```yaml
+# Park the 3-way diverter off the DHW tank (anti-thermosiphon)
+service: select.select_option
+target:
+  entity_id: select.warmlink_operating_mode
+data:
+  option: "Heating + DHW"
+```
+
+The Mode select exposes the two confirmed-safe modes: **DHW only** (`Mode=0`, the
+3-way valve sends flow to the tank) and **Heating + DHW** (`Mode=3`, the valve
+parks off the tank).
+
+> **Anti-thermosiphon use:** in summer, an idle DHW loop bleeds tank heat by
+> passive thermosiphon — the water pipes sit far above ambient while the unit is
+> off, slowly draining the tank through the cold outdoor unit. Writing
+> `Mode = Heating + DHW` *after* a reheat completes parks the diverter off the
+> tank and breaks that convection loop — a software "check valve." On real
+> hardware the diverter moves on the Mode write even with `Power=0`, and parking
+> roughly **halved** the measured standby loss (≈1.3 → ≈0.67 °C/h) while the
+> pipes cooled toward room temperature. Unconfirmed mode values are intentionally
+> not exposed, to avoid accidentally selecting a cooling mode.
 
 ### DHW Summer Control (Automated Power Cycling)
 
@@ -340,6 +367,7 @@ custom_components/warmlink/
 ├── __init__.py           # Integration setup
 ├── sensor.py             # Sensor platform
 ├── switch.py             # Switch platform (power on/off)
+├── select.py             # Select platform (operating mode)
 ├── button.py             # Button platform (refresh)
 ├── coordinator.py        # DataUpdateCoordinator
 ├── config_flow.py        # Configuration flow
