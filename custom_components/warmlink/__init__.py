@@ -5,7 +5,7 @@ import logging
 
 LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "button", "switch", "select"]
+PLATFORMS = ["sensor", "button"]
 
 async def async_setup(hass, config):
     """Set up the WarmLink component."""

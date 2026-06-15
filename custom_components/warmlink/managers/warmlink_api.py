@@ -92,25 +92,3 @@ class WarmlinkAPI:
         LOGGER.debug(f"WarmLink API: Fetching {len(codes)} properties")
         payload = {"deviceCode": device_code, "protocalCodes": codes}
         return await self.post(Endpoints.DeviceProperty, payload)
-
-    async def set_value(self, device_code, protocol_code, value):
-        """Write a single control value to the device (e.g. Power, Mode, R01).
-
-        Uses the linked-go/AquaTemp control endpoint. The protocolCode strings
-        match the same codes we read back (Power = on/off, R01 = DHW target,
-        Mode = operating mode).
-        """
-        LOGGER.info(f"WarmLink API: Setting {protocol_code}={value} on device")
-        payload = {
-            "appId": "16",
-            "param": [
-                {
-                    "deviceCode": device_code,
-                    "protocolCode": protocol_code,
-                    "value": str(value),
-                }
-            ],
-        }
-        result = await self.post(Endpoints.DeviceControl, payload)
-        LOGGER.debug(f"WarmLink API: Control response for {protocol_code}={value}: {result}")
-        return result
