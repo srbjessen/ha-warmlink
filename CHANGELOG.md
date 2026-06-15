@@ -5,18 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-- **Operating-mode select** (`select.warmlink_operating_mode`) — a writable Mode control exposing the confirmed-safe modes (*DHW only* = 0, *Heating + DHW* = 3). Enables the summer anti-thermosiphon trick: parking the 3-way diverter off the DHW tank (Mode = Heating + DHW) after a reheat breaks the passive convection loop that bleeds tank heat through the outdoor unit. Live-validated on real hardware: parking roughly halved the tank standby loss (~1.3 → ~0.67 °C/h) and decoupled the pipes toward room temperature. Unconfirmed modes are intentionally omitted to avoid accidentally selecting a cooling mode.
-- **Power on/off switch** (`switch.warmlink_power`) to control the heat pump from Home Assistant
-- **DHW summer control example** (`examples/automation_dhw_summer_control.yaml`) — power-cycles the pump in DHW-only mode without interrupting an active heating cycle
-- **DHW efficiency comparison example** (`examples/dhw_efficiency_comparison.yaml`) — logs daily DHW electricity per operating regime to compare deep-cycling vs. maintaining
-- Examples section in the README linking the dashboard, ApexCharts, and automation example files
-
-### Changed
-- **Update interval reduced from 5 minutes to 2 minutes** (`UPDATE_INTERVAL` 300 → 120 s) for more responsive data
-
 ## [70.0] - 2025-02-15
 
 ### Changed (BREAKING)
