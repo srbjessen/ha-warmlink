@@ -13,8 +13,9 @@ Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant 
 ## Features
 
 ✅ **391 Sensors** - Complete monitoring of your heat pump
+✅ **Writable Controls** - Set power, operating mode, and DHW target temperature
 ✅ **Fault Code Detection** - 41 fault codes including critical E035
-✅ **Real-time Updates** - Automatic updates every 5 minutes
+✅ **Real-time Updates** - Automatic updates every 2 minutes
 ✅ **Manual Refresh** - On-demand data refresh button
 ✅ **Multi-language** - Danish and English support
 ✅ **No Data Gaps** - Intelligent caching for continuous graphs
