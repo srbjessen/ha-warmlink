@@ -31,9 +31,24 @@ The integration can now **set** values, not just read them. This release adds Po
 
 ---
 
-## ⬆️ Upgrade
-- Smooth file replacement + restart. **No entity-ID migration** (unlike v70).
-- The new switch and select entities appear automatically after a restart.
+## 📦 Installation & Upgrade
+
+### New install — HACS (recommended)
+1. HACS → ⋮ (top right) → **Custom repositories** → add `https://github.com/srbjessen/ha-warmlink`, category **Integration**.
+2. Install **WarmLink**, then **restart Home Assistant**.
+3. **Settings → Devices & Services → + Add Integration → WarmLink**; enter your WarmLink/Zealux account email, password, and language (`da` or `en`).
+
+### New install — manual
+1. Download the source from the [v71.0 release](https://github.com/srbjessen/ha-warmlink/releases/tag/v71.0).
+2. Copy `custom_components/warmlink` into your Home Assistant `config/custom_components/` directory.
+3. Restart Home Assistant, then add the integration as above.
+
+### Upgrading from v63–v70
+- **HACS:** open the WarmLink card → **Update** to v71.0 → **restart Home Assistant**.
+- **Manual:** replace the `custom_components/warmlink` folder with v71.0 → restart.
+- **No entity-ID migration and no config changes** — v71.0 is purely additive. Existing sensors, dashboards, and automations keep working; the new `switch.warmlink_power` and the two `select` entities appear on the WarmLink device after the restart.
+
+> Coming straight from **v70**? That was the breaking entity-ID release. If you skipped it, do the v70 entity-ID migration first (see the v70 notes), then v71.0 layers cleanly on top.
 
 ---
 
