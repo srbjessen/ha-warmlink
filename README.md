@@ -13,8 +13,9 @@ Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant 
 ## Features
 
 ✅ **391 Sensors** - Complete monitoring of your heat pump
+✅ **Writable Controls** - Set power, operating mode, and DHW target temperature
 ✅ **Fault Code Detection** - 41 fault codes including critical E035
-✅ **Real-time Updates** - Automatic updates every 5 minutes
+✅ **Real-time Updates** - Automatic updates every 2 minutes
 ✅ **Manual Refresh** - On-demand data refresh button
 ✅ **Multi-language** - Danish and English support
 ✅ **No Data Gaps** - Intelligent caching for continuous graphs
@@ -196,6 +197,16 @@ template:
             0
           {% endif %}
 ```
+
+### Anti-Thermosiphon: Stop Summer DHW Tank Drain (optional)
+
+If your hot-water tank loses heat unusually fast in summer while the unit sits idle in DHW-only mode — and the primary pipes stay warm long after the pump has stopped — you may be seeing a passive **thermosiphon**: hot water in the tank's primary loop convects out toward the (cold) outdoor unit and slowly drains the tank, with no compressor or pump running.
+
+Because the effect is gravity-driven, **pipe geometry matters**. A primary connection that leaves the **top** of the tank and runs vertically upward gives the rising hot water a clean path to convect away — a stronger siphon and faster drain. Routings that drop downward, loop, or include a heat-trap at the tank siphon far less. Note that pipe insulation does *not* stop it (the loss is convective, not conductive).
+
+Since v71.0 the **Operating Mode select** can be used as a software "check valve": after a reheat completes, switch the mode to **Heating** to park the 3-way diverter *off* the DHW tank, which breaks the convection loop; switch it back to **DHW only** before the next reheat. Use *Heating* (not *Heating + DHW*) — a Heating-only park has no DHW component, so the unit won't periodically force the diverter back to the tank.
+
+A ready-to-adapt two-automation example (park when hot, release before reheat, with an optional summer-only gate) is in [`examples/automation_anti_thermosiphon.yaml`](examples/automation_anti_thermosiphon.yaml). Adjust the entity IDs and thresholds to your installation, and confirm the *Heating* park actually moves the diverter off your tank before relying on it.
 
 ---
 

@@ -1,0 +1,85 @@
+# Anti-thermosiphon: stop summer DHW tank drain (optional)
+# =========================================================
+# Only relevant if you actually SEE the symptom below — many installs don't.
+#
+# THE SYMPTOM
+#   In summer, when the unit sits idle in DHW-only mode (compressor and
+#   circulation pump off), the hot-water tank can lose heat far faster than
+#   you'd expect from insulation alone — and the primary pipes stay warm to
+#   the touch long after the pump has stopped. That is a passive THERMOSIPHON:
+#   hot water in the tank's primary loop rises, drifts out toward the (now
+#   cold) outdoor unit, gives up its heat there, and the cooled water sinks
+#   back — a self-sustaining convection cell that slowly empties the tank.
+#
+# WHY SOME INSTALLS ARE WORSE
+#   The effect is driven by gravity acting on the hot/cold density difference,
+#   so PIPE GEOMETRY matters. A primary connection that leaves the TOP of the
+#   tank and runs vertically upward gives the rising hot water a clean, tall
+#   path to convect away — a stronger siphon and faster drain. Installations
+#   where the primary pipes drop downward, loop, or include a heat-trap (an
+#   inverted-U at the tank) break that path and siphon much less. Good pipe
+#   insulation does NOT stop it (the loss is convective, not conductive).
+#
+# THE FIX (software "check valve")
+#   This integration's Operating Mode select can park the 3-way diverter OFF
+#   the DHW tank, which breaks the convection loop without any plumbing work.
+#   After a reheat finishes, switch the mode to "Heating"; before the next
+#   reheat, switch it back to "DHW only". While parked, the primary pipes
+#   relax toward room temperature instead of staying hot.
+#
+#   Use "Heating" (not "Heating + DHW") as the park: a Heating-only mode has
+#   no DHW component, so the unit will not periodically force the diverter
+#   back to the tank. "Heating + DHW" tends to revert to the tank on the
+#   unit's internal forced-switch timer, so the park does not hold.
+#
+# BEFORE YOU USE THIS
+#   - Adjust the entity IDs to match your installation (Developer Tools →
+#     States). Defaults shown use the `warmlink_` prefix.
+#   - Confirm the Mode labels exist on YOUR unit. The select only exposes
+#     modes confirmed safe on the reference hardware; verify "Heating" parks
+#     the diverter off your tank (watch the DHW pipes cool when parked).
+#   - Tune the two temperature thresholds to your DHW target and reheat point.
+#   - The optional `input_boolean.summer_mode` lets you enable this only in
+#     summer; create that helper, or delete the condition to run year-round.
+#
+# This is two automations: one parks after a reheat, one releases before the
+# next one so normal hot-water heating is never blocked.
+
+# 1) PARK — after the tank is back up to temperature, move the diverter off it.
+- alias: "DHW anti-siphon: park diverter when tank is hot"
+  id: warmlink_antisiphon_park
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.warmlink_dhw_temp_t08
+      above: 54          # ~ your "tank full" point; set near your DHW target
+      for: "00:02:00"    # confirm it's really done, not a brief spike
+  condition:
+    # Optional: only in summer. Delete this block to run year-round.
+    - condition: state
+      entity_id: input_boolean.summer_mode
+      state: "on"
+  action:
+    - service: select.select_option
+      target:
+        entity_id: select.warmlink_operating_mode
+      data:
+        option: "Heating"   # park: diverter off the DHW tank (holds)
+
+# 2) RELEASE — before the tank drops to its reheat point, hand it back to DHW.
+- alias: "DHW anti-siphon: release park before reheat"
+  id: warmlink_antisiphon_release
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.warmlink_dhw_temp_t08
+      below: 48          # your reheat threshold; must be > the cutout floor
+      for: "00:02:00"    # debounce noisy cloud-polled readings
+  condition:
+    - condition: state
+      entity_id: input_boolean.summer_mode
+      state: "on"
+  action:
+    - service: select.select_option
+      target:
+        entity_id: select.warmlink_operating_mode
+      data:
+        option: "DHW only"   # release: diverter back to the tank, allow reheat
