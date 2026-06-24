@@ -14,10 +14,16 @@ Login and device access are also validated during setup now, so wrong credential
 
 ---
 
+## ✨ Added — Reconfigure (no starting over)
+
+Changed account, or want to add the device code to an install you already have? Use **Reconfigure** on the WarmLink entry (its ⋮ menu → *Reconfigure*) to update the username, password, or device code **in place**. The same config entry is kept, so all your entities, their IDs, and any dashboard/automation references are preserved — no removing and re-adding.
+
+---
+
 ## ⬆️ Upgrade
 - **HACS:** update to v72.0 → restart Home Assistant. **Manual:** replace the `custom_components/warmlink` folder → restart.
-- **No changes needed for existing setups** — the Device code field is optional and defaults to blank (auto-detect). Owner accounts are unaffected.
-- **Member-account users:** after updating, remove and re-add the integration with the Device code filled in.
+- **Not a breaking change** — the Device code field is optional and defaults to blank (auto-detect). Existing owner setups are unaffected; no entity changes, no migration.
+- **Member-account users:** after updating, open **Reconfigure** on the WarmLink entry and fill in the Device code — your entities are kept (no need to remove and re-add).
 
 ---
 
