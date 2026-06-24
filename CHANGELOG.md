@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [71.0] - 2026-06-24
+
+### Added
+- **Writable controls** — the integration can now *set* values, not just read them, via the WarmLink cloud control endpoint:
+  - **Power switch** (`switch`) — turn the heat pump on/off.
+  - **Operating Mode select** (`select`) — DHW only / Heating / Heating + DHW. Only confirmed-safe modes are exposed, to avoid accidentally selecting a cooling mode.
+  - **DHW Target Temperature number** (`number`) — set the hot-water setpoint from Home Assistant; useful as an automation target/trigger. Resolves #9.
+
+### Changed
+- Update interval reduced from 5 minutes to 2 minutes for more responsive data.
+
 ## [70.0] - 2025-02-15
 
 ### Changed (BREAKING)
