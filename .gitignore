@@ -1,0 +1,6 @@
+# Claude Code local settings (personal, not shared with the repo)
+.claude/settings.local.json
+
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
