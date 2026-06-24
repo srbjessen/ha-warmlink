@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Writable controls** — the integration can now *set* values, not just read them, via the WarmLink cloud control endpoint:
   - **Power switch** (`switch`) — turn the heat pump on/off.
   - **Operating Mode select** (`select`) — DHW only / Heating / Heating + DHW. Only confirmed-safe modes are exposed, to avoid accidentally selecting a cooling mode.
-  - **DHW Target Temperature number** (`number`) — set the hot-water setpoint from Home Assistant; useful as an automation target/trigger. Resolves #9.
+  - **DHW Target Temperature select** (`select`) — set the hot-water setpoint from Home Assistant as a whole-degree dropdown (47–60 °C). A dropdown is one unambiguous write per change, unlike a stepper/box that sends a cloud write per increment and races over the slow round-trip. Useful as an automation target/trigger. Resolves #9.
 
 ### Changed
 - Update interval reduced from 5 minutes to 2 minutes for more responsive data.
