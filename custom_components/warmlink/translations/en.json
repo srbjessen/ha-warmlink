@@ -7,9 +7,18 @@
         "data": {
           "username": "Username",
           "password": "Password",
-          "language": "Language"
+          "language": "Language",
+          "device_code": "Device code (members / shared accounts only)"
+        },
+        "data_description": {
+          "device_code": "Leave blank to auto-detect (owner accounts). For a shared/member account, enter the heat pump's device code — find it in the WarmLink app under the device's information."
         }
       }
+    },
+    "error": {
+      "auth": "Login failed. Check your username and password.",
+      "no_devices": "No device was found on this account. If this is a shared/member account, enter the device code below.",
+      "device_not_found": "That device code returned no data for this account. Double-check it in the WarmLink app."
     }
   }
 }

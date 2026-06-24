@@ -7,9 +7,18 @@
         "data": {
           "username": "Brugernavn",
           "password": "Adgangskode",
-          "language": "Sprog"
+          "language": "Sprog",
+          "device_code": "Enhedskode (kun ved medlems-/delte konti)"
+        },
+        "data_description": {
+          "device_code": "Lad stå tomt for auto-detektion (ejer-konti). For en delt/medlems-konto: indtast varmepumpens enhedskode — find den i WarmLink-appen under enhedens oplysninger."
         }
       }
+    },
+    "error": {
+      "auth": "Login mislykkedes. Tjek brugernavn og adgangskode.",
+      "no_devices": "Ingen enhed fundet på kontoen. Hvis dette er en delt/medlems-konto, indtast enhedskoden nedenfor.",
+      "device_not_found": "Den enhedskode returnerede ingen data for kontoen. Tjek den i WarmLink-appen."
     }
   }
 }

@@ -109,7 +109,14 @@ Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant 
    - **Email**: Your WarmLink account email
    - **Password**: Your WarmLink account password
    - **Language**: `da` (Danish) or `en` (English)
+   - **Device code** *(optional)*: leave blank to auto-detect. Required for **shared / "member" accounts** — see below.
 5. Click **Submit**
+
+#### Shared / "member" accounts
+
+WarmLink allows only one concurrent login per account, so a common setup is to keep your main (owner) account for the app and add a **second account as a "member"** of the home for Home Assistant. Member accounts receive an **empty device list** from the WarmLink cloud, so auto-detection can't find the heat pump and setup fails.
+
+To use a member account, fill in the **Device code**: open the WarmLink app → your heat pump → device information, and copy the device code (the module's long numeric ID). With it filled in, the integration talks to the device directly and works on member accounts.
 
 ### Entities
 

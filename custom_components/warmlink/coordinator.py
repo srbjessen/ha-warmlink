@@ -26,8 +26,20 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
         self.entry = entry
         self.api = WarmlinkAPI(entry.data["username"], entry.data["password"], hass)
         self.codes = _CODES
-        self.device_info = None
-        self._device_code = None
+        # A device_code in the config entry means the user supplied it manually
+        # (members/shared accounts, whose cloud device list comes back empty —
+        # see issue #1). Use it directly and skip auto-discovery.
+        manual_code = (entry.data.get("device_code") or "").strip()
+        self._device_code = manual_code or None
+        self.device_info = {
+            "device_code": self._device_code,
+            "device_nick_name": None,
+            "product_id": None,
+            "device_id": None,
+            "cust_model": None,
+            "model": None,
+            "sn": None,
+        } if self._device_code else None
         self._logged_unknown_codes = set()  # Track unknown codes we've already logged
         self._logged_missing_codes = set()  # Track missing codes we've already logged
         super().__init__(
@@ -49,7 +61,11 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
                 
                 if not devs or "objectResult" not in devs or not devs["objectResult"]:
                     LOGGER.error("WarmLink: No devices returned from API")
-                    raise UpdateFailed("No devices returned from API")
+                    raise UpdateFailed(
+                        "No devices returned from API. If this is a shared/member "
+                        "WarmLink account, remove the integration and add it again "
+                        "with the Device Code filled in (find it in the WarmLink app)."
+                    )
                 device = devs["objectResult"][0]
                 
                 # Cache device info
