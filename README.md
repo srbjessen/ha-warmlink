@@ -3,6 +3,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 [![GitHub release](https://img.shields.io/github/release/srbjessen/ha-warmlink.svg)](https://github.com/srbjessen/ha-warmlink/releases)
 [![License](https://img.shields.io/github/license/srbjessen/ha-warmlink.svg)](LICENSE)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/srbjessen)
 
 Home Assistant integration for WarmLink/Zealux heat pumps.
 
@@ -302,6 +303,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and migration guides.
 
 - **Issues**: [GitHub Issues](https://github.com/srbjessen/ha-warmlink/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/srbjessen/ha-warmlink/discussions)
+- **Buy me a coffee**: if this integration is useful to you, you can support it on [Ko-fi](https://ko-fi.com/srbjessen) ☕ — entirely optional, and a nice signal that it's appreciated.
 
 ---
 
