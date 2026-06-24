@@ -133,14 +133,14 @@ button.warmlink_refresh_data
 
 ```yaml
 type: entities
-title: Varmepumpe Temperaturer
+title: Heat Pump Temperatures
 entities:
   - entity: sensor.warmlink_water_inlet_temp_t01
-    name: Indløb
+    name: Inlet
   - entity: sensor.warmlink_water_outlet_temp_t02
-    name: Udløb
+    name: Outlet
   - entity: sensor.warmlink_ambient_temp_t04
-    name: Udetemperatur
+    name: Ambient
 ```
 
 ### Manual Refresh Button
@@ -148,7 +148,7 @@ entities:
 ```yaml
 type: button
 entity: button.warmlink_refresh_data
-name: Opdater Nu
+name: Refresh Now
 icon: mdi:refresh
 tap_action:
   action: call-service
@@ -161,7 +161,7 @@ tap_action:
 
 ```yaml
 automation:
-  - alias: "Alarm Ved E035 Fejl"
+  - alias: "Alert on E035 fault"
     trigger:
       - platform: state
         entity_id: sensor.warmlink_high_pressure_switch_protection_e035
@@ -169,8 +169,8 @@ automation:
     action:
       - service: notify.mobile_app
         data:
-          title: "⚠️ Varmepumpe Alarm!"
-          message: "E035 Højtrykskontakt beskyttelse aktiveret!"
+          title: "⚠️ Heat Pump Alert!"
+          message: "E035 high-pressure switch protection triggered!"
           data:
             priority: high
 ```
@@ -180,7 +180,7 @@ automation:
 ```yaml
 template:
   - sensor:
-      - name: "Varmepumpe COP"
+      - name: "Heat Pump COP"
         unique_id: warmlink_cop
         unit_of_measurement: ""
         state_class: measurement
