@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [72.0] - 2026-06-25
+
+### Added
+- **Reconfigure support** — change the account or device code on an existing install (the WarmLink entry → **Reconfigure**) without removing and re-adding it. The same config entry is updated in place, so all entities, their IDs, and any dashboard/automation references are preserved.
+
+### Fixed
+- **Shared / "member" accounts can now be set up** — added an optional **Device code** field to the config flow. WarmLink member accounts receive an empty device list from the cloud, so auto-detection failed and setup never completed; supplying the device code lets the integration address the heat pump directly. Login and device access are validated during setup with clear error messages. Resolves #1.
+
 ## [71.0] - 2026-06-24
 
 ### Added
