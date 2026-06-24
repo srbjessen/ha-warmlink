@@ -140,5 +140,14 @@ class WarmlinkDHWTargetNumber(CoordinatorEntity, NumberEntity):
         LOGGER.info("WarmLink: Requesting DHW target R01=%s", out)
         resp = await self.coordinator.api.set_value(device_code, DHW_TARGET_CODE, out)
         LOGGER.info("WarmLink: R01=%s command response: %s", out, resp)
-        # Refresh so the number reflects the new value from the API.
-        await self.coordinator.async_request_refresh()
+        # Reflect the new setpoint immediately (optimistic) so the UI doesn't
+        # snap back to the old value while the cloud applies it; the next
+        # scheduled poll reconciles (and corrects if the device clamps it).
+        # This also avoids the per-write re-poll storm that raced when the
+        # value was changed rapidly.
+        if self.coordinator.data:
+            for item in self.coordinator.data:
+                if item.get("code") == DHW_TARGET_CODE:
+                    item["value"] = out
+                    break
+            self.coordinator.async_set_updated_data(self.coordinator.data)
