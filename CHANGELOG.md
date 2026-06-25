@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [73.0] - 2026-06-25
+
+### Changed
+- **DHW target range now follows the device's own min/max** (registers `R36`/`R37`) instead of a fixed 47–60 °C — read live, so the dropdown matches each unit's configured range (e.g. 15–55 °C on some models) and tracks changes made in the WarmLink app. Selecting a value validates against the live range. Addresses the range feedback in #9. ⚠️ Running the tank low for price/solar optimisation is useful, but a tank sitting ~32–45 °C is where Legionella grows fastest — keep a weekly disinfection cycle to ≥60 °C on if you do (see the release notes).
+
 ## [72.0] - 2026-06-25
 
 ### Added
