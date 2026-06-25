@@ -134,10 +134,14 @@ class WarmlinkModeSelect(CoordinatorEntity, SelectEntity):
 
 
 # DHW target temperature as a discrete °C dropdown (writes the R01 code).
-# The device's DHW target range is R36..R37 = 47..60 °C.
+# The selectable range is read live from the device's own min/max registers
+# (R36 = min, R37 = max), so it matches each unit's configured range and tracks
+# changes made in the WarmLink app. Falls back to 47..60 if not reported.
 DHW_TARGET_CODE = "R01"
-DHW_MIN = 47
-DHW_MAX = 60
+DHW_MIN_CODE = "R36"
+DHW_MAX_CODE = "R37"
+DEFAULT_MIN = 47
+DEFAULT_MAX = 60
 
 
 class WarmlinkDHWTargetSelect(CoordinatorEntity, SelectEntity):
@@ -155,7 +159,7 @@ class WarmlinkDHWTargetSelect(CoordinatorEntity, SelectEntity):
         self._attr_unique_id = f"{entry.entry_id}_dhw_target_select"
         self._attr_name = "DHW Target Temperature"
         self._attr_icon = "mdi:thermometer-water"
-        self._attr_options = [str(t) for t in range(DHW_MIN, DHW_MAX + 1)]
+        # options are computed dynamically from the device range (see `options`)
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -182,13 +186,38 @@ class WarmlinkDHWTargetSelect(CoordinatorEntity, SelectEntity):
             model=device_model,
         )
 
-    def _r01_value(self):
-        """Return the raw R01 value, or None if unavailable."""
+    def _code_value(self, code):
+        """Return the raw value of a protocol code, or None if unavailable."""
         if self.coordinator.data:
             for item in self.coordinator.data:
-                if item.get("code") == DHW_TARGET_CODE:
+                if item.get("code") == code:
                     return item.get("value")
         return None
+
+    def _range(self):
+        """Return (min, max) °C from the device's R36/R37, else the defaults."""
+        lo, hi = DEFAULT_MIN, DEFAULT_MAX
+        try:
+            v = self._code_value(DHW_MIN_CODE)
+            if v not in (None, "", "null"):
+                lo = int(round(float(v)))
+        except (TypeError, ValueError):
+            pass
+        try:
+            v = self._code_value(DHW_MAX_CODE)
+            if v not in (None, "", "null"):
+                hi = int(round(float(v)))
+        except (TypeError, ValueError):
+            pass
+        if lo > hi:  # guard against an implausible / partial report
+            lo, hi = DEFAULT_MIN, DEFAULT_MAX
+        return lo, hi
+
+    @property
+    def options(self):
+        """Whole-degree options across the device's reported range (live)."""
+        lo, hi = self._range()
+        return [str(t) for t in range(lo, hi + 1)]
 
     @property
     def available(self) -> bool:
@@ -198,21 +227,25 @@ class WarmlinkDHWTargetSelect(CoordinatorEntity, SelectEntity):
     @property
     def current_option(self):
         """Return the current DHW target as a dropdown option (rounded to °C)."""
-        value = self._r01_value()
+        value = self._code_value(DHW_TARGET_CODE)
         if value in (None, "", "null"):
             return None
         try:
             opt = str(int(round(float(value))))
         except (TypeError, ValueError):
             return None
-        return opt if opt in self._attr_options else None
+        return opt if opt in self.options else None
 
     async def async_select_option(self, option: str) -> None:
         """Write the chosen DHW target temperature to the device."""
         try:
-            target = int(option)
+            target = int(round(float(option)))
         except (ValueError, TypeError):
             LOGGER.error("WarmLink: Unrecognised DHW target option %s", option)
+            return
+        if str(target) not in self.options:
+            lo, hi = self._range()
+            LOGGER.error("WarmLink: DHW target %s out of device range %s-%s", target, lo, hi)
             return
 
         device_code = None
