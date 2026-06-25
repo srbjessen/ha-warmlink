@@ -1,9 +1,15 @@
+<p align="center">
+  <img src="docs/images/banner.png" alt="WarmLink — Home Assistant integration for Zealux / WarmLink heat pumps" width="820">
+</p>
+
 # WarmLink Integration for Home Assistant
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 [![GitHub release](https://img.shields.io/github/release/srbjessen/ha-warmlink.svg)](https://github.com/srbjessen/ha-warmlink/releases)
 [![License](https://img.shields.io/github/license/srbjessen/ha-warmlink.svg)](LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/srbjessen)
+
+> 💛 **Free & open-source.** If WarmLink saves you kWh or makes your heat pump smarter, you can [buy me a coffee](https://ko-fi.com/srbjessen) ☕ — the best way to tell me it's worth maintaining.
 
 Home Assistant integration for WarmLink/Zealux heat pumps.
 

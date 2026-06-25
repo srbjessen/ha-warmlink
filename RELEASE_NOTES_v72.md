@@ -29,3 +29,7 @@ Changed account, or want to add the device code to an install you already have? 
 
 ## Resolves
 - #1 — "Integration does not work with 'member' accounts"
+
+---
+
+☕ *Enjoying WarmLink? It's free and maintained in my spare time — [a coffee](https://ko-fi.com/srbjessen) is a lovely thank-you.*
