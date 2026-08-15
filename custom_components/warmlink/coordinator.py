@@ -2,7 +2,7 @@
 from datetime import timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from .managers.warmlink_api import WarmlinkAPI
-from .const import DOMAIN, UPDATE_INTERVAL
+from .const import DOMAIN, UPDATE_INTERVAL, RADIATOR_PRODUCT_IDS, RADIATOR_CODES
 import json, os, logging
 
 LOGGER = logging.getLogger(__name__)
@@ -42,6 +42,7 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
         } if self._device_code else None
         self._logged_unknown_codes = set()  # Track unknown codes we've already logged
         self._logged_missing_codes = set()  # Track missing codes we've already logged
+        self._discovery_attempted = False  # Manual device_code: one-shot device-list enrichment
         super().__init__(
             hass,
             LOGGER,
@@ -50,6 +51,22 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
         )
         LOGGER.info(f"WarmLink: Coordinator initialized with {UPDATE_INTERVAL}s update interval")
     
+    @property
+    def is_radiator(self):
+        """True when the connected device is a LinkedGo smart radiator."""
+        if not self.device_info:
+            return False
+        return str(self.device_info.get("product_id")) in RADIATOR_PRODUCT_IDS
+
+    def value(self, code):
+        """Return the current raw value for a protocol code, or None."""
+        for item in self.data or []:
+            if item.get("code") == code:
+                v = item.get("value")
+                if v not in (None, "", "null"):
+                    return v
+        return None
+
     async def _async_update_data(self):
         """Fetch data from API."""
         LOGGER.info(f"WarmLink: Starting scheduled update at {self.hass.loop.time()}")
@@ -80,7 +97,35 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
                     "sn": device.get("sn"),
                 }
                 LOGGER.info(f"WarmLink: Connected to device {self.device_info.get('device_nick_name')} ({self.device_info.get('cust_model')})")
-            
+            elif not self._discovery_attempted and self.device_info and self.device_info.get("product_id") is None:
+                # Manual device_code: try one device-list call to enrich device_info
+                # (nickname + product_id, which drives radiator/heat-pump routing).
+                # Member/shared accounts get an empty list back — that is fine, we
+                # just keep the manual code and default to heat-pump codes.
+                self._discovery_attempted = True
+                try:
+                    devs = await self.api.get_devices()
+                    for device in (devs or {}).get("objectResult") or []:
+                        if device.get("deviceCode") == self._device_code:
+                            self.device_info = {
+                                "device_code": device.get("deviceCode"),
+                                "device_nick_name": device.get("deviceNickName"),
+                                "product_id": device.get("productId"),
+                                "device_id": device.get("deviceId"),
+                                "cust_model": device.get("custModel"),
+                                "model": device.get("model"),
+                                "sn": device.get("sn"),
+                            }
+                            LOGGER.info(f"WarmLink: Enriched manual device {self.device_info.get('device_nick_name')} (productId {self.device_info.get('product_id')})")
+                            break
+                except Exception as e:
+                    LOGGER.debug(f"WarmLink: Device-list enrichment skipped: {e}")
+
+            # Route to the lean radiator protocol when the product id says so.
+            if self.is_radiator and self.codes is not RADIATOR_CODES:
+                self.codes = RADIATOR_CODES
+                LOGGER.info(f"WarmLink: Radiator detected — polling {len(RADIATOR_CODES)} radiator codes instead of {len(_CODES)} heat-pump codes")
+
             # Fetch property data in batches
             results = []
             codes_requested = set()

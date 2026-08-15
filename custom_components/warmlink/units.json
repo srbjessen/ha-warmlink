@@ -72,5 +72,7 @@
   "Zone 2 Mixing Temp": "°C", "Zone 2 Water Target": "°C",
 
   "Power": "W",
-  "compensate_offset": "°C"
+  "compensate_offset": "°C",
+
+  "T1": "°C", "2013": "kW"
 }

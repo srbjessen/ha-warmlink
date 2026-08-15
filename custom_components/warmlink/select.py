@@ -43,6 +43,11 @@ VALUE_TO_LABEL = {v: k for k, v in MODE_OPTIONS.items()}
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up WarmLink select entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
+    if getattr(coordinator, "is_radiator", False):
+        # Radiators have no DHW tank or diverter valve, and their Mode values
+        # have different semantics — the climate entity covers their controls.
+        LOGGER.debug("WarmLink: Radiator — skipping heat-pump mode/DHW selects")
+        return
     async_add_entities([
         WarmlinkModeSelect(coordinator, entry),
         WarmlinkDHWTargetSelect(coordinator, entry),

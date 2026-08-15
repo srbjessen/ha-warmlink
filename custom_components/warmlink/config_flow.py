@@ -52,7 +52,10 @@ class WarmlinkConfigFlow(config_entries.ConfigFlow, domain="warmlink"):
         if user_input is not None:
             errors = await _validate(self.hass, user_input)
             if not errors:
-                return self.async_create_entry(title="WarmLink", data=user_input)
+                title = "WarmLink"
+                if user_input.get("device_code"):
+                    title = f"WarmLink {user_input['device_code']}"
+                return self.async_create_entry(title=title, data=user_input)
 
         return self.async_show_form(
             step_id="user",
