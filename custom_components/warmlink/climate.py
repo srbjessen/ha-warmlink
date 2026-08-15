@@ -35,7 +35,9 @@ CURRENT_CODE = "T1"
 HEAT_LEVEL_CODE = "Fan_Speed_Setting"
 MIN_TEMP_CODE = "R05"
 MAX_TEMP_CODE = "R01"      # limit for the heating dial (raising it widens the app/panel range)
-POWER_KW_CODE = "2013"
+FAN_RUNNING_CODE = "O2"    # ~1600 while the fan actually spins, 0 at rest.
+                           # NOTE: "2013" reads a constant 1.2 (rated value, NOT
+                           # live draw) — do not use it for activity detection.
 
 # Mode enum — verified on hardware 2026-08-15 (panel LEDs while switching):
 #   "1" = COOLING, "4" = HEATING. Other values unobserved.
@@ -152,10 +154,10 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
     def hvac_action(self):
         if self.hvac_mode == HVACMode.OFF:
             return HVACAction.OFF
-        kw = self._float(POWER_KW_CODE)
-        if kw is None:
+        rpm = self._float(FAN_RUNNING_CODE)
+        if rpm is None:
             return None
-        if kw <= 0:
+        if rpm <= 0:
             return HVACAction.IDLE
         mode = self._device_mode()
         if mode == MODE_COOL:
