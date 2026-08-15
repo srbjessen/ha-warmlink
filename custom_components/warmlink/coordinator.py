@@ -24,7 +24,15 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
         """Initialize the coordinator."""
         self.hass = hass
         self.entry = entry
-        self.api = WarmlinkAPI(entry.data["username"], entry.data["password"], hass)
+        # The LinkedGo cloud invalidates the previous token on every new login
+        # (one active token per account). Share ONE API client — and thereby one
+        # token — across all config entries for the same account, so multiple
+        # devices (e.g. several radiators) don't fight over the session.
+        api_pool = hass.data.setdefault(DOMAIN, {}).setdefault("_api_pool", {})
+        pool_key = entry.data["username"]
+        if pool_key not in api_pool:
+            api_pool[pool_key] = WarmlinkAPI(entry.data["username"], entry.data["password"], hass)
+        self.api = api_pool[pool_key]
         self.codes = _CODES
         # A device_code in the config entry means the user supplied it manually
         # (members/shared accounts, whose cloud device list comes back empty —

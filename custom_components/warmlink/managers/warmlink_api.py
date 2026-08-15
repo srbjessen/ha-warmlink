@@ -1,4 +1,5 @@
 
+import asyncio
 import hashlib
 import logging
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -30,9 +31,18 @@ class WarmlinkAPI:
         self.base_url = "https://cloud.linked-go.com:449/crmservice/api"
         self.session = async_get_clientsession(hass)
         self.token = None
-    
+        # The cloud only allows ONE active token per account: every new login
+        # invalidates the previous token (verified empirically — old token gets
+        # error_code -100). Serialise logins so concurrent coordinators sharing
+        # this client don't stampede and invalidate each other's fresh tokens.
+        self._login_lock = asyncio.Lock()
+
     async def login(self):
-        """Login to the API."""
+        """Login to the API (serialised — see _login_lock note)."""
+        async with self._login_lock:
+            return await self._login_inner()
+
+    async def _login_inner(self):
         LOGGER.debug(f"WarmLink API: Attempting login for user {self.username}")
         payload = {"userName": self.username, "password": self.password}
         try:

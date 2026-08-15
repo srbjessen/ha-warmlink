@@ -69,6 +69,10 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_radiator_climate"
         self._attr_name = None  # use the device name
+        # Cache the last known device limits so a poll that happens to miss
+        # R05/R01 doesn't make the UI flap back to the hardcoded defaults.
+        self._min_temp = 5.0
+        self._max_temp = 30.0
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -133,11 +137,17 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def min_temp(self):
-        return self._float(MIN_TEMP_CODE) or 5.0
+        v = self._float(MIN_TEMP_CODE)
+        if v is not None:
+            self._min_temp = v
+        return self._min_temp
 
     @property
     def max_temp(self):
-        return self._float(MAX_TEMP_CODE) or 30.0
+        v = self._float(MAX_TEMP_CODE)
+        if v is not None:
+            self._max_temp = v
+        return self._max_temp
 
     @property
     def fan_mode(self):
