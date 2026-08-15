@@ -29,12 +29,19 @@ from .const import DOMAIN
 LOGGER = logging.getLogger(__name__)
 
 POWER_CODE = "Power"
-TARGET_CODE = "R02"
+HEAT_TARGET_CODE = "R02"   # heating setpoint (panel SET TEMP in heating mode)
+COOL_TARGET_CODE = "R03"   # cooling setpoint (panel SET TEMP in cooling mode)
 CURRENT_CODE = "T1"
 HEAT_LEVEL_CODE = "Fan_Speed_Setting"
 MIN_TEMP_CODE = "R05"
-MAX_TEMP_CODE = "R01"
+MAX_TEMP_CODE = "R01"      # limit for the heating dial (raising it widens the app/panel range)
 POWER_KW_CODE = "2013"
+
+# Mode enum — verified on hardware 2026-08-15 (panel LEDs while switching):
+#   "1" = COOLING, "4" = HEATING. Other values unobserved.
+MODE_CODE = "Mode"
+MODE_COOL = "1"
+MODE_HEAT = "4"
 
 HEAT_LEVELS = ["1", "2", "3", "4", "5", "6"]
 
@@ -53,7 +60,7 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
     """Climate entity for a LinkedGo/WarmLink smart radiator."""
 
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
+    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.COOL, HVACMode.OFF]
     _attr_fan_modes = HEAT_LEVELS
     _attr_target_temperature_step = 0.5
     _attr_supported_features = (
@@ -111,12 +118,22 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
     def available(self) -> bool:
         return bool(self.coordinator.data) and self.coordinator.last_update_success
 
+    def _is_cooling_mode(self):
+        return str(self.coordinator.value(MODE_CODE)) == MODE_COOL
+
     @property
     def hvac_mode(self):
         v = self.coordinator.value(POWER_CODE)
         if v is None:
             return None
-        return HVACMode.OFF if str(v).strip() in ("0", "0.0") else HVACMode.HEAT
+        if str(v).strip() in ("0", "0.0"):
+            return HVACMode.OFF
+        mode = str(self.coordinator.value(MODE_CODE))
+        if mode == MODE_COOL:
+            return HVACMode.COOL
+        if mode == MODE_HEAT:
+            return HVACMode.HEAT
+        return None  # unobserved mode value — don't guess
 
     @property
     def hvac_action(self):
@@ -125,7 +142,9 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         kw = self._float(POWER_KW_CODE)
         if kw is None:
             return None
-        return HVACAction.HEATING if kw > 0 else HVACAction.IDLE
+        if kw <= 0:
+            return HVACAction.IDLE
+        return HVACAction.COOLING if self._is_cooling_mode() else HVACAction.HEATING
 
     @property
     def current_temperature(self):
@@ -133,10 +152,15 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def target_temperature(self):
-        return self._float(TARGET_CODE)
+        # The panel's SET TEMP follows the active mode: R03 in cooling, R02 in
+        # heating — mirror that so HA always shows what the display shows.
+        code = COOL_TARGET_CODE if self._is_cooling_mode() else HEAT_TARGET_CODE
+        return self._float(code)
 
     @property
     def min_temp(self):
+        if self._is_cooling_mode():
+            return 5.0  # cooling dial limits are unmapped — permissive static range
         v = self._float(MIN_TEMP_CODE)
         if v is not None:
             self._min_temp = v
@@ -144,6 +168,8 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def max_temp(self):
+        if self._is_cooling_mode():
+            return 35.0  # cooling dial limits are unmapped — permissive static range
         v = self._float(MAX_TEMP_CODE)
         if v is not None:
             self._max_temp = v
@@ -169,14 +195,21 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         temp = kwargs.get(ATTR_TEMPERATURE)
         if temp is None:
             return
-        await self._set(TARGET_CODE, f"{float(temp):.1f}")
+        code = COOL_TARGET_CODE if self._is_cooling_mode() else HEAT_TARGET_CODE
+        await self._set(code, f"{float(temp):.1f}")
 
     async def async_set_fan_mode(self, fan_mode):
         if fan_mode in HEAT_LEVELS:
             await self._set(HEAT_LEVEL_CODE, fan_mode)
 
     async def async_set_hvac_mode(self, hvac_mode):
-        await self._set(POWER_CODE, "0" if hvac_mode == HVACMode.OFF else "1")
+        if hvac_mode == HVACMode.OFF:
+            await self._set(POWER_CODE, "0")
+            return
+        target = MODE_COOL if hvac_mode == HVACMode.COOL else MODE_HEAT
+        if str(self.coordinator.value(MODE_CODE)) != target:
+            await self._set(MODE_CODE, target)
+        await self._set(POWER_CODE, "1")
 
     async def async_turn_on(self):
         await self._set(POWER_CODE, "1")
