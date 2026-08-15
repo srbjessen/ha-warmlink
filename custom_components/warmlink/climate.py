@@ -39,10 +39,16 @@ FAN_RUNNING_CODE = "O2"    # ~1600 while the fan actually spins, 0 at rest.
                            # NOTE: "2013" reads a constant 1.2 (rated value, NOT
                            # live draw) — do not use it for activity detection.
 
-# Mode enum — verified on hardware 2026-08-15 (panel LEDs while switching):
-#   "1" = COOLING, "4" = HEATING. Other values unobserved.
+# Mode enum — verified on hardware 2026-08-15 (panel LEDs/display during a
+# controlled sweep with the owner watching): 0=auto, 1=cooling,
+# 2=dehumidify ("dEH" on the display), 3=fan-only (ventilation), 4=heating.
+# Value 5 is rejected by the device (snaps back to 0). Dehumidify is not
+# exposed: it needs cold water the radiator loop doesn't have.
 MODE_CODE = "Mode"
+MODE_AUTO = "0"
 MODE_COOL = "1"
+MODE_DRY = "2"
+MODE_FAN = "3"
 MODE_HEAT = "4"
 
 HEAT_LEVELS = ["1", "2", "3", "4", "5", "6"]
@@ -62,7 +68,7 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
     """Climate entity for a LinkedGo/WarmLink smart radiator."""
 
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.COOL, HVACMode.OFF]
+    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.COOL, HVACMode.FAN_ONLY, HVACMode.AUTO, HVACMode.OFF]
     _attr_fan_modes = HEAT_LEVELS
     _attr_target_temperature_step = 0.5
     _attr_supported_features = (
@@ -144,11 +150,13 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         if str(v).strip() in ("0", "0.0"):
             return HVACMode.OFF
         mode = self._device_mode()
-        if mode == MODE_COOL:
-            return HVACMode.COOL
-        if mode == MODE_HEAT:
-            return HVACMode.HEAT
-        return None  # unobserved mode value — don't guess
+        return {
+            MODE_AUTO: HVACMode.AUTO,
+            MODE_COOL: HVACMode.COOL,
+            MODE_DRY: HVACMode.DRY,  # reachable from the panel, shown truthfully
+            MODE_FAN: HVACMode.FAN_ONLY,
+            MODE_HEAT: HVACMode.HEAT,
+        }.get(mode)
 
     @property
     def hvac_action(self):
@@ -164,7 +172,9 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
             return HVACAction.COOLING
         if mode == MODE_HEAT:
             return HVACAction.HEATING
-        return None  # active in an unmapped mode — don't misreport
+        if mode in (MODE_FAN, MODE_DRY):
+            return HVACAction.FAN
+        return None  # auto/unmapped while spinning — direction unknown, don't guess
 
     @property
     def current_temperature(self):
@@ -174,6 +184,9 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
     def target_temperature(self):
         # The panel's SET TEMP follows the active mode: R03 in cooling, R02 in
         # heating — mirror that so HA always shows what the display shows.
+        # Fan-only has no setpoint.
+        if self._device_mode() == MODE_FAN:
+            return None
         code = COOL_TARGET_CODE if self._is_cooling_mode() else HEAT_TARGET_CODE
         return self._float(code)
 
@@ -215,6 +228,9 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         temp = kwargs.get(ATTR_TEMPERATURE)
         if temp is None:
             return
+        if self._device_mode() == MODE_FAN:
+            LOGGER.debug("WarmLink: Ignoring set_temperature in fan-only mode")
+            return
         code = COOL_TARGET_CODE if self._is_cooling_mode() else HEAT_TARGET_CODE
         await self._set(code, f"{float(temp):.1f}")
 
@@ -226,7 +242,11 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         if hvac_mode == HVACMode.OFF:
             await self._set(POWER_CODE, "0")
             return
-        target = MODE_COOL if hvac_mode == HVACMode.COOL else MODE_HEAT
+        target = {
+            HVACMode.COOL: MODE_COOL,
+            HVACMode.FAN_ONLY: MODE_FAN,
+            HVACMode.AUTO: MODE_AUTO,
+        }.get(hvac_mode, MODE_HEAT)
         if self._device_mode() != target:
             self._pending_mode = target
             await self._set(MODE_CODE, target)
