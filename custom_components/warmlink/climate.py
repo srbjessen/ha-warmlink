@@ -80,6 +80,9 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         # R05/R01 doesn't make the UI flap back to the hardcoded defaults.
         self._min_temp = 5.0
         self._max_temp = 30.0
+        # Optimistic mode after a mode write, so an immediate set_temperature
+        # targets the RIGHT register instead of racing the 120 s poll.
+        self._pending_mode = None
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -118,8 +121,18 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
     def available(self) -> bool:
         return bool(self.coordinator.data) and self.coordinator.last_update_success
 
+    def _device_mode(self):
+        """Effective mode: optimistic pending value until the poll confirms it."""
+        polled = str(self.coordinator.value(MODE_CODE))
+        if self._pending_mode is not None:
+            if polled == self._pending_mode:
+                self._pending_mode = None  # confirmed by device
+            else:
+                return self._pending_mode
+        return polled
+
     def _is_cooling_mode(self):
-        return str(self.coordinator.value(MODE_CODE)) == MODE_COOL
+        return self._device_mode() == MODE_COOL
 
     @property
     def hvac_mode(self):
@@ -128,7 +141,7 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
             return None
         if str(v).strip() in ("0", "0.0"):
             return HVACMode.OFF
-        mode = str(self.coordinator.value(MODE_CODE))
+        mode = self._device_mode()
         if mode == MODE_COOL:
             return HVACMode.COOL
         if mode == MODE_HEAT:
@@ -144,7 +157,12 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
             return None
         if kw <= 0:
             return HVACAction.IDLE
-        return HVACAction.COOLING if self._is_cooling_mode() else HVACAction.HEATING
+        mode = self._device_mode()
+        if mode == MODE_COOL:
+            return HVACAction.COOLING
+        if mode == MODE_HEAT:
+            return HVACAction.HEATING
+        return None  # active in an unmapped mode — don't misreport
 
     @property
     def current_temperature(self):
@@ -207,7 +225,8 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
             await self._set(POWER_CODE, "0")
             return
         target = MODE_COOL if hvac_mode == HVACMode.COOL else MODE_HEAT
-        if str(self.coordinator.value(MODE_CODE)) != target:
+        if self._device_mode() != target:
+            self._pending_mode = target
             await self._set(MODE_CODE, target)
         await self._set(POWER_CODE, "1")
 
