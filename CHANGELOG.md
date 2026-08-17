@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [75.0] - 2026-08-17
+
+Packaging release preparing the repository for the HACS default store.
+
+### Added
+- **CI validation** — the HACS repository check and Home Assistant `hassfest` manifest validation now run on push, PRs, and on a daily schedule. (#27)
+
+### Fixed
+- **`hassfest` compliance** — the internal code→icon map was named `icons.json`, a name HA reserves for its own icon schema; renamed to `code_icons.json` (referenced only by `sensor.py`). Added a `CONFIG_SCHEMA` (config-entry-only) since the integration implements `async_setup`. No user-facing change. (#27)
+
 ## [74.0] - 2026-08-17
 
 Documentation and packaging release — no functional changes to the integration.
