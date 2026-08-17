@@ -389,5 +389,14 @@
   "Fault3": "Fejlkode 3",
   "Fault4": "Fejlkode 4",
   "Fault7": "Fejlkode 7",
-  "Fault8": "Fejlkode 8"
+  "Fault8": "Fejlkode 8",
+  "T1": "Rumtemperatur",
+  "Fan_Speed_Setting": "Varmeniveau",
+  "2013": "Effektforbrug",
+  "O2": "Tilstand O2",
+  "O5": "Tilstand O5",
+  "H06": "Tilstand H06",
+  "Power_Timer": "Timer",
+  "Power_Timer_Hours": "Timer-timer",
+  "Sleep": "Sovetilstand"
 }

@@ -15,8 +15,14 @@ POWER_CODE = "Power"
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up WarmLink switch entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([WarmlinkPowerSwitch(coordinator, entry)])
-    LOGGER.info("WarmLink: Added power switch")
+    entities = [WarmlinkPowerSwitch(coordinator, entry)]
+    if getattr(coordinator, "is_radiator", False):
+        # Deliberately a SEPARATE switch (not a climate hvac mode): enabling the
+        # cooling function must be an explicit two-step act, so a stray tap on
+        # the thermostat card can never start cooling on uninsulated pipes.
+        entities.append(WarmlinkCoolingFunctionSwitch(coordinator, entry))
+    async_add_entities(entities)
+    LOGGER.info("WarmLink: Added %d switch(es)", len(entities))
 
 
 class WarmlinkPowerSwitch(CoordinatorEntity, SwitchEntity):
@@ -104,3 +110,38 @@ class WarmlinkPowerSwitch(CoordinatorEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the heat pump off."""
         await self._set_power(False)
+
+
+# Radiator cooling-function gate. H05=0 keeps the device heat-only (the app's
+# cooling button is dead); H05=1 unlocks cooling. Write-verified on hardware.
+COOLING_FUNCTION_CODE = "H05"
+
+
+class WarmlinkCoolingFunctionSwitch(WarmlinkPowerSwitch):
+    """Explicit enable/disable of the radiator's cooling function (H05)."""
+
+    def __init__(self, coordinator, entry):
+        """Initialize the switch."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_cooling_function_switch"
+        self._attr_name = "Kølefunktion"
+        self._attr_icon = "mdi:snowflake"
+
+    def _power_value(self):
+        """Return the raw H05 value (overrides the Power lookup)."""
+        if self.coordinator.data:
+            for item in self.coordinator.data:
+                if item.get("code") == COOLING_FUNCTION_CODE:
+                    return item.get("value")
+        return None
+
+    async def _set_power(self, turn_on: bool) -> None:
+        """Write H05 instead of Power."""
+        device_code = (self.coordinator.device_info or {}).get("device_code")
+        if not device_code:
+            LOGGER.error("WarmLink: No device_code available, cannot set cooling function")
+            return
+        value = "1" if turn_on else "0"
+        LOGGER.info(f"WarmLink: Requesting cooling function H05={value}")
+        await self.coordinator.api.set_value(device_code, COOLING_FUNCTION_CODE, value)
+        await self.coordinator.async_request_refresh()

@@ -1,7 +1,7 @@
 {
   "domain": "warmlink",
   "name": "WarmLink",
-  "version": "73.0",
+  "version": "73.6",
   "requirements": [
     "aiohttp"
   ],
