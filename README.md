@@ -27,6 +27,7 @@ Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant 
 
 ✅ **391 Sensors** - Complete monitoring of your heat pump
 ✅ **Writable Controls** - Set power, operating mode, and DHW target temperature
+✅ **Summer Anti-Thermosiphon** - Park the 3-way diverter off the DHW tank via the Mode select to stop passive summer standby drain — for units affected by it ([guide below](#anti-thermosiphon-stop-summer-dhw-tank-drain-optional))
 ✅ **Fault Code Detection** - 41 fault codes including critical E035
 ✅ **Real-time Updates** - Automatic updates every 2 minutes
 ✅ **Manual Refresh** - On-demand data refresh button
