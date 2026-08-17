@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [74.0] - 2026-08-17
+
+Documentation and packaging release — no functional changes to the integration.
+
+### Changed
+- **COP example** in the README now splits **single-phase** and **three-phase** power (single-phase is the default, power factor ~0.95). The previous version hardcoded the three-phase factor (`× 1.732`), which overstated input power by ~73% and understated COP on single-phase units. Thanks to @j5bart. (#18, #21)
+- **Confirmed-compatible devices** — added **WarmFlow Zeno (AS02-R32)** to the README (same LinkedGo cloud platform). (#18, #21)
+- **Summer Anti-Thermosiphon** is now surfaced in the feature list, linking to the existing guide. (#23)
+- **Ko-fi** moved to a single line under *Contributing* as an optional "non-code way to help". (#24)
+- **`manifest.json`** now includes `documentation`, `issue_tracker`, and `iot_class` (`cloud_polling`), with `codeowners` set to `@srbjessen` — HACS default-store compliance. (#25)
+
 ## [73.0] - 2026-06-25
 
 ### Changed
