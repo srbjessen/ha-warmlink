@@ -1,9 +1,13 @@
 
 from .const import DOMAIN
 from .coordinator import WarmlinkCoordinator
+from homeassistant.helpers import config_validation as cv
 import logging
 
 LOGGER = logging.getLogger(__name__)
+
+# Configured via config entries (UI) only, not via YAML.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 PLATFORMS = ["sensor", "button", "switch", "select"]
 
