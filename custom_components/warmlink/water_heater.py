@@ -33,6 +33,10 @@ DHW_MAX_CODE = "R37"
 DHW_TANK_TEMP_CODE = "T08"
 DEFAULT_MIN = 47
 DEFAULT_MAX = 60
+POWER_CODE = "Power"
+MODE_CODE = "Mode"
+# Operating modes that actually service the DHW tank (have a DHW component).
+DHW_ACTIVE_MODES = {"0", "3", "4"}  # DHW only, Heating + DHW, Cooling + DHW
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -52,6 +56,9 @@ class WarmlinkDHWWaterHeater(CoordinatorEntity, WaterHeaterEntity):
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = WaterHeaterEntityFeature.TARGET_TEMPERATURE
     _attr_target_temperature_step = 1
+    # Informative state only (no operation-mode control): the DHW side is driven
+    # by Power + Mode, which the climate entity and Mode select already own.
+    _attr_operation_list = ["off", "heat_pump"]
 
     def __init__(self, coordinator, entry):
         """Initialize the water heater."""
@@ -122,6 +129,24 @@ class WarmlinkDHWWaterHeater(CoordinatorEntity, WaterHeaterEntity):
     def target_temperature(self):
         """Current DHW setpoint (R01)."""
         return self._num(DHW_TARGET_CODE)
+
+    def _raw(self, code):
+        """Return a protocol code's raw value as a stripped string, or None."""
+        if self.coordinator.data:
+            for item in self.coordinator.data:
+                if item.get("code") == code:
+                    v = item.get("value")
+                    return None if v in (None, "", "null") else str(v).strip()
+        return None
+
+    @property
+    def current_operation(self):
+        """'heat_pump' while the DHW tank is actively served (Power on + a DHW
+        mode), else 'off' — so the card shows a real state, not 'unknown'."""
+        power = self._raw(POWER_CODE)
+        if power is None or power in ("0", "0.0"):
+            return "off"
+        return "heat_pump" if self._raw(MODE_CODE) in DHW_ACTIVE_MODES else "off"
 
     async def async_set_temperature(self, **kwargs):
         """Write a new DHW setpoint (whole degrees)."""
