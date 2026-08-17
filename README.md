@@ -15,6 +15,12 @@ Home Assistant integration for WarmLink/Zealux heat pumps.
 
 Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant with comprehensive sensor coverage, fault code monitoring, and real-time updates.
 
+> **Confirmed-compatible devices:** several brands rebadge the same LinkedGo cloud
+> platform, and users have confirmed the integration working on them —
+> Zealux · WarmLink · **WarmFlow Zeno (AS02-R32)**. If your heat pump uses the
+> WarmLink/AquaTemp app, it very likely works even if it's not listed here; open
+> an issue and we'll add it.
+
 ---
 
 ## Features
@@ -202,7 +208,10 @@ template:
         state: >
           {% set voltage = states('sensor.warmlink_ac_input_voltage_t34') | float(0) %}
           {% set current = states('sensor.warmlink_ac_input_current_t35') | float(0) %}
-          {% set power = (voltage * current * 1.732 / 1000) %}
+          {# Power factor ~0.95. Pick the line that matches your unit's supply: #}
+          {% set power_single_phase = (voltage * current * 0.95 / 1000) %}
+          {% set power_three_phase = (voltage * current * 1.732 * 0.95 / 1000) %}
+          {% set power = power_single_phase %}  {# use power_three_phase for a 3-phase heat pump #}
           {% set delta_t = states('sensor.varmepumpe_delta_t') | float(0) %}
           {% set flow = states('sensor.warmlink_water_flow_t39') | float(0) %}
           {% if power > 0 and delta_t > 0 %}
@@ -211,6 +220,13 @@ template:
             0
           {% endif %}
 ```
+
+> **Note:** This defaults to **single-phase** power (most smaller units). For a
+> **three-phase** heat pump, switch `power` to `power_three_phase`. The earlier
+> version hardcoded the three-phase factor (`× 1.732`), which overstates input
+> power — and understates COP — by ~73% on single-phase units. Power factor
+> (~0.95) also drops at part-load, so treat the result as an estimate rather than
+> a metered figure. (Thanks to @j5bart for the correction.)
 
 ### Anti-Thermosiphon: Stop Summer DHW Tank Drain (optional)
 
