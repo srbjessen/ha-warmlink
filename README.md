@@ -335,7 +335,7 @@ This integration is not officially affiliated with or endorsed by WarmLink or Ze
 
 ---
 
-**Current Version:** 70.0  
+**Current Version:** 74.0  
 **Total Sensors:** 391  
 **Supported Languages:** Danish, English  
-**Update Interval:** 5 minutes
+**Update Interval:** 2 minutes
