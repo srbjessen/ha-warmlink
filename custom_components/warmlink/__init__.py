@@ -5,7 +5,7 @@ import logging
 
 LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "button", "switch", "select", "climate"]
+PLATFORMS = ["sensor", "button", "switch", "select", "water_heater", "climate"]
 
 async def async_setup(hass, config):
     """Set up the WarmLink component."""
@@ -40,6 +40,20 @@ async def async_unload_entry(hass, entry):
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        # Release the shared API client from the pool when no other loaded entry
+        # uses the same account. Otherwise a reconfigure that changes the password
+        # (same username) would reuse the pooled client — and its stale token —
+        # until the next full HA restart.
+        username = entry.data.get("username")
+        pool = hass.data.get(DOMAIN, {}).get("_api_pool", {})
+        if username in pool:
+            others = [
+                e for e in hass.config_entries.async_entries(DOMAIN)
+                if e.entry_id != entry.entry_id and e.data.get("username") == username
+            ]
+            if not others:
+                pool.pop(username, None)
+                LOGGER.debug("WarmLink: Released pooled API client for account %s", username)
     return unload_ok
 
