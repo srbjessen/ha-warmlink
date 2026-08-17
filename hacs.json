@@ -1,7 +1,6 @@
 {
   "name": "WarmLink",
   "content_in_root": false,
-  "filename": "warmlink",
   "render_readme": true,
   "country": ["DK"],
   "homeassistant": "2024.1.0"
