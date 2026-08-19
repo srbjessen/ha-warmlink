@@ -65,6 +65,34 @@ class WarmlinkConfigFlow(config_entries.ConfigFlow, domain="warmlink"):
             errors=errors,
         )
 
+    async def async_step_reauth(self, entry_data):
+        """Start reauth after the cloud rejected the stored credentials.
+
+        Triggered by the coordinator raising ConfigEntryAuthFailed, so a wrong
+        password shows up as an actionable notification instead of entities
+        silently freezing on stale data until a restart.
+        """
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(self, user_input=None):
+        """Ask for the new password and revalidate before storing it."""
+        errors = {}
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        if user_input is not None:
+            data = {**entry.data, "password": user_input["password"]}
+            api = WarmlinkAPI(data["username"], data["password"], self.hass)
+            if await api.login():
+                self.hass.config_entries.async_update_entry(entry, data=data)
+                await self.hass.config_entries.async_reload(entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
+            errors["base"] = "auth"
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required("password"): str}),
+            description_placeholders={"username": entry.data.get("username", "")},
+            errors=errors,
+        )
+
     async def async_step_reconfigure(self, user_input=None):
         """Change the account / device code on an existing entry.
 

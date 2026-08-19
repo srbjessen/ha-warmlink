@@ -14,6 +14,13 @@
           "device_code": "Leave blank to auto-detect (owner accounts). For a shared/member account, enter the heat pump's device code — find it in the WarmLink app under the device's information."
         }
       },
+      "reauth_confirm": {
+        "title": "Re-authenticate WarmLink",
+        "description": "The WarmLink cloud rejected the stored password for {username}. Enter the current password to reconnect.",
+        "data": {
+          "password": "Password"
+        }
+      },
       "reconfigure": {
         "title": "Reconfigure WarmLink",
         "description": "Change the account or device code. Your entities and their IDs are kept.",
@@ -34,7 +41,8 @@
       "device_not_found": "That device code returned no data for this account. Double-check it in the WarmLink app."
     },
     "abort": {
-      "reconfigure_successful": "Re-configuration was successful."
+      "reconfigure_successful": "Re-configuration was successful.",
+      "reauth_successful": "Re-authentication was successful."
     }
   }
 }

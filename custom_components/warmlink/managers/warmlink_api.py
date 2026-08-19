@@ -21,9 +21,13 @@ PRODUCT_IDS = [
     "1552190345066967040", "1534450342119510016", "1480699335514533888"
 ]
 
+class WarmlinkAuthError(Exception):
+    """The cloud explicitly rejected the credentials (not a transport error)."""
+
+
 class WarmlinkAPI:
     """API client for WarmLink."""
-    
+
     def __init__(self, username, password, hass):
         """Initialize the API client."""
         self.username = username
@@ -31,6 +35,11 @@ class WarmlinkAPI:
         self.base_url = "https://cloud.linked-go.com:449/crmservice/api"
         self.session = async_get_clientsession(hass)
         self.token = None
+        # True after a login attempt the cloud explicitly rejected (both plain
+        # and MD5 password variants). Distinguishes "wrong password" — which
+        # never fixes itself and should surface a reauth — from transient
+        # transport failures, which should just be retried.
+        self.auth_failed = False
         # The cloud only allows ONE active token per account: every new login
         # invalidates the previous token (verified empirically — old token gets
         # error_code -100). Serialise logins so concurrent coordinators sharing
@@ -42,8 +51,29 @@ class WarmlinkAPI:
         async with self._login_lock:
             return await self._login_inner()
 
+    async def ensure_token(self, bad_token=None):
+        """Make sure a usable token exists, re-logging in only when needed.
+
+        Waiters queued on the lock piggyback on the winner's fresh token
+        instead of logging in again themselves — every login invalidates the
+        previous token (one active token per account), so N queued logins used
+        to end with N-1 dead tokens and another round of -100s (token
+        ping-pong). ``bad_token`` is the token the caller just saw rejected;
+        holding a DIFFERENT one means somebody already re-authenticated.
+        """
+        async with self._login_lock:
+            if self.token and self.token != bad_token:
+                return True
+            return await self._login_inner()
+
     async def _login_inner(self):
         LOGGER.debug(f"WarmLink API: Attempting login for user {self.username}")
+        # Never leave a stale token around while re-authenticating: a failed
+        # login used to keep the old (invalid) token, so every later request
+        # retried it, got -100, failed the re-login, and looped — silently —
+        # until an HA restart.
+        self.token = None
+        self.auth_failed = False
         payload = {"userName": self.username, "password": self.password}
         try:
             async with self.session.post(f"{self.base_url}/{Endpoints.Login}", json=payload) as r:
@@ -59,15 +89,25 @@ class WarmlinkAPI:
                 LOGGER.info("WarmLink API: Login successful")
                 return True
             LOGGER.error(f"WarmLink API: Login failed - {data.get('error_msg', 'Unknown error')}")
+            self.auth_failed = True
             return False
         except Exception as e:
             LOGGER.error(f"WarmLink API: Login exception - {e}")
             return False
-    
+
+    def _raise_login_failure(self, path):
+        """Turn a failed (re)login into the right exception for the caller."""
+        if self.auth_failed:
+            raise WarmlinkAuthError(
+                f"WarmLink cloud rejected the credentials for {self.username}"
+            )
+        raise ConnectionError(f"Could not log in to the WarmLink cloud ({path})")
+
     async def post(self, path, payload):
         """Make a POST request to the API."""
         if not self.token:
-            await self.login()
+            if not await self.ensure_token():
+                self._raise_login_failure(path)
         headers = {"x-token": self.token}
         try:
             async with self.session.post(f"{self.base_url}/{path}", json=payload, headers=headers) as r:
@@ -75,11 +115,14 @@ class WarmlinkAPI:
                 # Check for token expiration (-100 = "Please log in again")
                 if r.status == 401 or data.get("error_code") == "401" or data.get("error_code") == "-100":
                     LOGGER.debug("WarmLink API: Token expired, re-authenticating")
-                    await self.login()
+                    if not await self.ensure_token(bad_token=headers["x-token"]):
+                        self._raise_login_failure(path)
                     headers = {"x-token": self.token}
                     async with self.session.post(f"{self.base_url}/{path}", json=payload, headers=headers) as r2:
                         return await r2.json()
                 return data
+        except WarmlinkAuthError:
+            raise
         except Exception as e:
             LOGGER.error(f"WarmLink API: Request failed to {path}: {e}")
             raise

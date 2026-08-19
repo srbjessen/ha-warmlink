@@ -14,6 +14,7 @@ IMPORTANT: the two families use DIFFERENT raw ``Mode`` values (heat pump:
 own Mode constants below — they are intentionally not shared.
 """
 import logging
+import time
 
 from homeassistant.components.climate import (
     ClimateEntity,
@@ -25,7 +26,7 @@ from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, UPDATE_INTERVAL
 
 LOGGER = logging.getLogger(__name__)
 
@@ -37,14 +38,29 @@ COOL_TARGET_CODE = "R03"   # cooling setpoint (°C)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up the climate entity — radiator or heat pump, by device type."""
+    """Set up the climate entity — radiator or heat pump, by device type.
+
+    Routing fails CLOSED: the two families use conflicting raw Mode enums, so
+    a device we cannot positively identify (manual device_code with an empty
+    cloud device list — no productId — and no T02 outlet sensor in the first
+    refresh) gets NO climate entity, rather than the heat-pump one showing and
+    writing inverted modes on what is actually a radiator.
+    """
     coordinator = hass.data[DOMAIN][entry.entry_id]
     if getattr(coordinator, "is_radiator", False):
         async_add_entities([WarmlinkRadiatorClimate(coordinator, entry)])
         LOGGER.info("WarmLink: Added radiator climate entity")
-    else:
+    elif getattr(coordinator, "is_heat_pump", False):
         async_add_entities([WarmlinkClimate(coordinator, entry)])
         LOGGER.info("WarmLink: Added space-conditioning climate entity")
+    else:
+        LOGGER.warning(
+            "WarmLink: Could not identify the device family (no known productId,"
+            " no T02 outlet sensor) — not creating a climate entity, because the"
+            " two families interpret Mode values differently. Power stays"
+            " controllable via the switch; please report the device model so it"
+            " can be mapped."
+        )
 
 
 # =============================================================================
@@ -66,8 +82,11 @@ COOL_MAX_CODE = "R09"
 # Raw Mode values for HEAT PUMPS (confirmed on hardware, see select.py).
 MODE_HEATING = "1"
 MODE_COOLING = "2"
+MODE_HEATING_DHW = "3"
+MODE_COOLING_DHW = "4"
 HEATING_MODES = {"1", "3"}   # Heating, Heating + DHW
 COOLING_MODES = {"2", "4"}   # Cooling, Cooling + DHW
+DHW_COMPONENT_MODES = {"0", "3", "4"}   # modes that service the DHW tank
 
 DEFAULT_HEAT_MIN, DEFAULT_HEAT_MAX = 20, 60
 DEFAULT_COOL_MIN, DEFAULT_COOL_MAX = 7, 30
@@ -239,15 +258,23 @@ class WarmlinkClimate(CoordinatorEntity, ClimateEntity):
             self.coordinator.async_set_updated_data(self.coordinator.data)
 
     async def async_set_hvac_mode(self, hvac_mode):
-        """Map OFF/HEAT/COOL to Power + Mode writes."""
+        """Map OFF/HEAT/COOL to Power + Mode writes.
+
+        HEAT/COOL preserve the DHW component: when the current mode services
+        the tank (0/3/4), write the combined mode (3/4) instead of the plain
+        one (1/2). Otherwise picking HEAT on the thermostat card would
+        silently stop hot-water production — with nothing in the UI saying so.
+        """
         if hvac_mode == HVACMode.OFF:
             await self._write(POWER_CODE, "0")
-        elif hvac_mode == HVACMode.HEAT:
+        elif hvac_mode in (HVACMode.HEAT, HVACMode.COOL):
+            keep_dhw = self._raw(MODE_CODE) in DHW_COMPONENT_MODES
+            if hvac_mode == HVACMode.HEAT:
+                mode = MODE_HEATING_DHW if keep_dhw else MODE_HEATING
+            else:
+                mode = MODE_COOLING_DHW if keep_dhw else MODE_COOLING
             await self._write(POWER_CODE, "1")
-            await self._write(MODE_CODE, MODE_HEATING)
-        elif hvac_mode == HVACMode.COOL:
-            await self._write(POWER_CODE, "1")
-            await self._write(MODE_CODE, MODE_COOLING)
+            await self._write(MODE_CODE, mode)
         else:
             LOGGER.warning("WarmLink: unsupported hvac_mode %s", hvac_mode)
             return
@@ -299,6 +326,25 @@ RAD_MODE_HEAT = "4"
 
 RAD_HEAT_LEVELS = ["1", "2", "3", "4", "5", "6"]
 
+# How long an optimistic (pending) mode may stand in for the polled one before
+# we conclude the device never took the write. Two poll cycles: one for the
+# cloud's write lag, one for the next poll to actually read it back.
+RAD_PENDING_MODE_TTL = 2 * UPDATE_INTERVAL
+
+
+def _control_accepted(resp):
+    """True when a control response looks like the cloud accepted the write.
+
+    The response must actually be checked: a dead cloud session still answers,
+    and treating any answer as "OK" has been seen on hardware to wave through
+    a whole test phase of Mode writes that never reached the device.
+    """
+    if not isinstance(resp, dict):
+        return False
+    if resp.get("error_code") not in (None, "0"):
+        return False
+    return resp.get("isReusltSuc") is not False
+
 
 class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
     """Climate entity for a LinkedGo/WarmLink smart radiator."""
@@ -328,7 +374,9 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         self._max_temp = 30.0
         # Optimistic mode after a mode write, so an immediate set_temperature
         # targets the RIGHT register instead of racing the 120 s poll.
+        # Bounded by RAD_PENDING_MODE_TTL — see _device_mode().
         self._pending_mode = None
+        self._pending_mode_expiry = 0.0
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -368,11 +416,25 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         return bool(self.coordinator.data) and self.coordinator.last_update_success
 
     def _device_mode(self):
-        """Effective mode: optimistic pending value until the poll confirms it."""
+        """Effective mode: optimistic pending value until the poll confirms it.
+
+        The pending value is dropped when the poll confirms it — or when it
+        expires unconfirmed (write lost or rejected by the device). Without
+        the expiry, a failed write would latch the UI on a mode the device
+        never entered, and set_temperature would keep targeting the wrong
+        register (R02 vs R03) until a restart.
+        """
         polled = str(self.coordinator.value(MODE_CODE))
         if self._pending_mode is not None:
             if polled == self._pending_mode:
                 self._pending_mode = None  # confirmed by device
+            elif time.monotonic() >= self._pending_mode_expiry:
+                LOGGER.warning(
+                    "WarmLink: Mode=%s was not confirmed by the device within %d s"
+                    " — reverting to the polled mode (%s)",
+                    self._pending_mode, RAD_PENDING_MODE_TTL, polled,
+                )
+                self._pending_mode = None
             else:
                 return self._pending_mode
         return polled
@@ -410,7 +472,9 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
             return HVACAction.COOLING
         if mode == RAD_MODE_HEAT:
             return HVACAction.HEATING
-        if mode in (RAD_MODE_FAN, RAD_MODE_DRY):
+        if mode == RAD_MODE_DRY:
+            return HVACAction.DRYING  # dehumidify is not ventilation — say so
+        if mode == RAD_MODE_FAN:
             return HVACAction.FAN
         return None  # auto/unmapped while spinning — direction unknown, don't guess
 
@@ -458,9 +522,10 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         device_code = (self.coordinator.device_info or {}).get("device_code")
         if not device_code:
             LOGGER.error("WarmLink: No device_code available, cannot control radiator")
-            return
-        await self.coordinator.api.set_value(device_code, code, value)
+            return None
+        resp = await self.coordinator.api.set_value(device_code, code, value)
         await self.coordinator.async_request_refresh()
+        return resp
 
     async def async_set_temperature(self, **kwargs):
         temp = kwargs.get(ATTR_TEMPERATURE)
@@ -478,6 +543,10 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
 
     async def async_set_hvac_mode(self, hvac_mode):
         if hvac_mode == HVACMode.OFF:
+            # Powering off makes any optimistic mode moot; clear it so it
+            # can't outlive the OFF and repoint a later set_temperature at
+            # the wrong register.
+            self._pending_mode = None
             await self._set(POWER_CODE, "0")
             return
         target = {
@@ -488,11 +557,23 @@ class WarmlinkRadiatorClimate(CoordinatorEntity, ClimateEntity):
         }.get(hvac_mode, RAD_MODE_HEAT)
         if self._device_mode() != target:
             self._pending_mode = target
-            await self._set(MODE_CODE, target)
+            self._pending_mode_expiry = time.monotonic() + RAD_PENDING_MODE_TTL
+            try:
+                resp = await self._set(MODE_CODE, target)
+            except Exception:
+                self._pending_mode = None  # write never reached the cloud
+                raise
+            if not _control_accepted(resp):
+                LOGGER.warning(
+                    "WarmLink: Mode=%s write was not accepted (%s) — dropping"
+                    " the optimistic mode", target, resp,
+                )
+                self._pending_mode = None
         await self._set(POWER_CODE, "1")
 
     async def async_turn_on(self):
         await self._set(POWER_CODE, "1")
 
     async def async_turn_off(self):
+        self._pending_mode = None
         await self._set(POWER_CODE, "0")
