@@ -42,9 +42,12 @@ DHW_ACTIVE_MODES = {"0", "3", "4"}  # DHW only, Heating + DHW, Cooling + DHW
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the WarmLink DHW water heater entity (heat pumps only)."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    if getattr(coordinator, "is_radiator", False):
-        # Radiators have no DHW tank — nothing to expose here.
-        LOGGER.debug("WarmLink: Radiator — skipping DHW water_heater platform")
+    if not getattr(coordinator, "is_heat_pump", False):
+        # Heat-pump-only: radiators have no DHW tank, and an unidentified
+        # device must not get it either (fail closed) — on a radiator, R01 is
+        # the heating-dial limit, not a DHW setpoint, so writing a tank target
+        # there would silently clamp the radiator's range.
+        LOGGER.debug("WarmLink: No heat-pump evidence — skipping DHW water_heater")
         return
     async_add_entities([WarmlinkDHWWaterHeater(coordinator, entry)])
     LOGGER.info("WarmLink: Added DHW water heater entity")

@@ -16,7 +16,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up WarmLink switch entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [WarmlinkPowerSwitch(coordinator, entry)]
-    if getattr(coordinator, "is_radiator", False):
+    if coordinator.value(COOLING_FUNCTION_CODE) is not None:
+        # Gate on the device actually REPORTING H05, not on is_radiator: heat
+        # pumps carry the flag too (their cooling modes are inert without it),
+        # and a radiator added via manual device_code (no productId) still gets
+        # its cooling gate this way.
         # Deliberately a SEPARATE switch (not a climate hvac mode): enabling the
         # cooling function must be an explicit two-step act, so a stray tap on
         # the thermostat card can never start cooling on uninsulated pipes.

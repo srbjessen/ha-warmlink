@@ -119,8 +119,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     # Computed diagnostic: water Delta-T (outlet - inlet). A live "is it actually
     # transferring heat" indicator that no single raw code provides. Heat pumps
-    # only — radiators don't report the T01/T02 water sensors.
-    if not getattr(coord, "is_radiator", False):
+    # only — radiators don't report the T01/T02 water sensors, and an
+    # unidentified device would just carry a permanently-unknown sensor.
+    if getattr(coord, "is_heat_pump", False):
         entities.append(WarmlinkDeltaTSensor(coord, entry))
     
     LOGGER.info(f"WarmLink: Created {len(entities)} sensor entities")
