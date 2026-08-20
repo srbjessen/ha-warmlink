@@ -1,4 +1,4 @@
-"""Climate platform for the WarmLink integration.
+"""Climate platform for the WarmLink integration. 
 
 Two device families share this platform, selected at setup time by
 ``coordinator.is_radiator``:
