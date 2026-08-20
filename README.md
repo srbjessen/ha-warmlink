@@ -9,8 +9,6 @@
 [![License](https://img.shields.io/github/license/srbjessen/ha-warmlink.svg)](LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/srbjessen)
 
-> 💛 **Free & open-source.** If WarmLink saves you kWh or makes your heat pump smarter, you can [buy me a coffee](https://ko-fi.com/srbjessen) ☕ — the best way to tell me it's worth maintaining.
-
 Home Assistant integration for WarmLink/Zealux heat pumps.
 
 Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant with comprehensive sensor coverage, fault code monitoring, and real-time updates.
@@ -27,6 +25,7 @@ Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant 
 
 ✅ **391 Sensors** - Complete monitoring of your heat pump
 ✅ **Writable Controls** - Set power, operating mode, and DHW target temperature
+✅ **Summer Anti-Thermosiphon** - Park the 3-way diverter off the DHW tank via the Mode select to stop passive summer standby drain — for units affected by it ([guide below](#anti-thermosiphon-stop-summer-dhw-tank-drain-optional))
 ✅ **Fault Code Detection** - 41 fault codes including critical E035
 ✅ **Real-time Updates** - Automatic updates every 2 minutes
 ✅ **Manual Refresh** - On-demand data refresh button
@@ -300,6 +299,8 @@ Contributions are welcome! Please:
 4. Test thoroughly
 5. Submit a pull request
 
+Not a coder? A ⭐ on the repo — or a [coffee on Ko-fi](https://ko-fi.com/srbjessen) ☕ — helps keep it maintained just as much. Completely optional; new fault codes, firmware quirks, and Home Assistant releases all take time to keep up with.
+
 ---
 
 ## Credits
@@ -325,7 +326,6 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and migration guides.
 
 - **Issues**: [GitHub Issues](https://github.com/srbjessen/ha-warmlink/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/srbjessen/ha-warmlink/discussions)
-- **Buy me a coffee**: if this integration is useful to you, you can support it on [Ko-fi](https://ko-fi.com/srbjessen) ☕ — entirely optional, and a nice signal that it's appreciated.
 
 ---
 
@@ -335,7 +335,7 @@ This integration is not officially affiliated with or endorsed by WarmLink or Ze
 
 ---
 
-**Current Version:** 70.0  
+**Current Version:** 74.0  
 **Total Sensors:** 391  
 **Supported Languages:** Danish, English  
-**Update Interval:** 5 minutes
+**Update Interval:** 2 minutes

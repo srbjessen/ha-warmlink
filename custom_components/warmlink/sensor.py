@@ -5,7 +5,7 @@ LOGGER = logging.getLogger(__name__)
 
 _TRANSLATIONS_PATH = os.path.join(os.path.dirname(__file__), "translations")
 _UNITS_PATH = os.path.join(os.path.dirname(__file__), "units.json")
-_ICONS_PATH = os.path.join(os.path.dirname(__file__), "icons.json")
+_ICONS_PATH = os.path.join(os.path.dirname(__file__), "code_icons.json")
 
 # Track codes we've already logged warnings for (to avoid spam)
 _logged_missing_translations = set()
@@ -50,7 +50,7 @@ try:
     LOGGER.info(f"WarmLink: Loaded {len(_ICONS)} icon mappings")
 except Exception as e:
     _ICONS = {}
-    LOGGER.error(f"WarmLink: Failed to load icons.json: {e}")
+    LOGGER.error(f"WarmLink: Failed to load code_icons.json: {e}")
 
 def make_entity_id_friendly(text):
     """Convert text to entity_id friendly format."""

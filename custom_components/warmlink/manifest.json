@@ -1,12 +1,15 @@
 {
   "domain": "warmlink",
   "name": "WarmLink",
-  "version": "73.0",
+  "codeowners": [
+    "@srbjessen"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/srbjessen/ha-warmlink",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/srbjessen/ha-warmlink/issues",
   "requirements": [
     "aiohttp"
   ],
-  "codeowners": [
-    "@local"
-  ],
-  "config_flow": true
+  "version": "75.0"
 }
