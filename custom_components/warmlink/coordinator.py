@@ -1,8 +1,9 @@
 
 from datetime import timedelta
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from .managers.warmlink_api import WarmlinkAPI
-from .const import DOMAIN, UPDATE_INTERVAL
+from .managers.warmlink_api import WarmlinkAPI, WarmlinkAuthError
+from .const import DOMAIN, UPDATE_INTERVAL, RADIATOR_PRODUCT_IDS, RADIATOR_CODES
 import json, os, logging
 
 LOGGER = logging.getLogger(__name__)
@@ -24,7 +25,36 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
         """Initialize the coordinator."""
         self.hass = hass
         self.entry = entry
-        self.api = WarmlinkAPI(entry.data["username"], entry.data["password"], hass)
+        # The LinkedGo cloud invalidates the previous token on every new login
+        # (one active token per account). Share ONE API client — and thereby one
+        # token — across all config entries for the same account, so multiple
+        # devices (e.g. several radiators) don't fight over the session.
+        api_pool = hass.data.setdefault(DOMAIN, {}).setdefault("_api_pool", {})
+        pool_key = entry.data["username"]
+        if pool_key not in api_pool:
+            api_pool[pool_key] = WarmlinkAPI(entry.data["username"], entry.data["password"], hass)
+        elif api_pool[pool_key].password != entry.data["password"]:
+            # A reconfigure changed the password while sibling entries kept the
+            # pooled client alive (unload only releases it when the LAST entry
+            # for the account goes). Re-arm the client in place — new password,
+            # token dropped so the next request logs in fresh — and propagate
+            # the password to the sibling entries' stored data, so a restart
+            # that happens to load a stale sibling first can't resurrect the
+            # old password.
+            LOGGER.info("WarmLink: Password changed for account %s — re-arming pooled API client", pool_key)
+            pooled = api_pool[pool_key]
+            pooled.password = entry.data["password"]
+            pooled.token = None
+            for sibling in hass.config_entries.async_entries(DOMAIN):
+                if (
+                    sibling.entry_id != entry.entry_id
+                    and sibling.data.get("username") == pool_key
+                    and sibling.data.get("password") != entry.data["password"]
+                ):
+                    hass.config_entries.async_update_entry(
+                        sibling, data={**sibling.data, "password": entry.data["password"]}
+                    )
+        self.api = api_pool[pool_key]
         self.codes = _CODES
         # A device_code in the config entry means the user supplied it manually
         # (members/shared accounts, whose cloud device list comes back empty —
@@ -42,6 +72,7 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
         } if self._device_code else None
         self._logged_unknown_codes = set()  # Track unknown codes we've already logged
         self._logged_missing_codes = set()  # Track missing codes we've already logged
+        self._discovery_attempted = False  # Manual device_code: one-shot device-list enrichment
         super().__init__(
             hass,
             LOGGER,
@@ -50,6 +81,45 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
         )
         LOGGER.info(f"WarmLink: Coordinator initialized with {UPDATE_INTERVAL}s update interval")
     
+    @property
+    def is_radiator(self):
+        """True when the connected device is a LinkedGo smart radiator."""
+        if not self.device_info:
+            return False
+        return str(self.device_info.get("product_id")) in RADIATOR_PRODUCT_IDS
+
+    @property
+    def is_heat_pump(self):
+        """True only on POSITIVE evidence that the device is a heat pump.
+
+        The two families use conflicting raw Mode enums (heat pump 1=heating /
+        2=cooling vs radiator 1=cooling / 4=heating), so routing must fail
+        CLOSED: a device we cannot identify gets no heat-pump-only entities
+        rather than controls that would write the wrong enum. Evidence:
+
+        * a product id from the device list that is not a known radiator id, or
+        * no product id (manual device_code — member/shared accounts get an
+          empty device list back): the outlet-water sensor T02, which every
+          heat pump reports and no radiator does. The probe is reliable at
+          platform-setup time because the first refresh runs before the
+          platforms are forwarded (a failed first refresh never gets that far —
+          it raises ConfigEntryNotReady).
+        """
+        if self.is_radiator:
+            return False
+        if self.device_info and self.device_info.get("product_id") is not None:
+            return True
+        return self.value("T02") is not None
+
+    def value(self, code):
+        """Return the current raw value for a protocol code, or None."""
+        for item in self.data or []:
+            if item.get("code") == code:
+                v = item.get("value")
+                if v not in (None, "", "null"):
+                    return v
+        return None
+
     async def _async_update_data(self):
         """Fetch data from API."""
         LOGGER.info(f"WarmLink: Starting scheduled update at {self.hass.loop.time()}")
@@ -80,7 +150,35 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
                     "sn": device.get("sn"),
                 }
                 LOGGER.info(f"WarmLink: Connected to device {self.device_info.get('device_nick_name')} ({self.device_info.get('cust_model')})")
-            
+            elif not self._discovery_attempted and self.device_info and self.device_info.get("product_id") is None:
+                # Manual device_code: try one device-list call to enrich device_info
+                # (nickname + product_id, which drives radiator/heat-pump routing).
+                # Member/shared accounts get an empty list back — that is fine, we
+                # just keep the manual code and default to heat-pump codes.
+                self._discovery_attempted = True
+                try:
+                    devs = await self.api.get_devices()
+                    for device in (devs or {}).get("objectResult") or []:
+                        if device.get("deviceCode") == self._device_code:
+                            self.device_info = {
+                                "device_code": device.get("deviceCode"),
+                                "device_nick_name": device.get("deviceNickName"),
+                                "product_id": device.get("productId"),
+                                "device_id": device.get("deviceId"),
+                                "cust_model": device.get("custModel"),
+                                "model": device.get("model"),
+                                "sn": device.get("sn"),
+                            }
+                            LOGGER.info(f"WarmLink: Enriched manual device {self.device_info.get('device_nick_name')} (productId {self.device_info.get('product_id')})")
+                            break
+                except Exception as e:
+                    LOGGER.debug(f"WarmLink: Device-list enrichment skipped: {e}")
+
+            # Route to the lean radiator protocol when the product id says so.
+            if self.is_radiator and self.codes is not RADIATOR_CODES:
+                self.codes = RADIATOR_CODES
+                LOGGER.info(f"WarmLink: Radiator detected — polling {len(RADIATOR_CODES)} radiator codes instead of {len(_CODES)} heat-pump codes")
+
             # Fetch property data in batches
             results = []
             codes_requested = set()
@@ -116,6 +214,10 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
                                     self._logged_unknown_codes.add(code)
                                     LOGGER.info(f"WarmLink: Discovered new code from API: {code} = {item.get('value')}")
                     
+                except WarmlinkAuthError:
+                    # Bad credentials are not a per-batch hiccup — let them
+                    # surface so HA can start the reauth flow.
+                    raise
                 except Exception as batch_error:
                     batch_errors.append(f"Batch {i//20 + 1}: {str(batch_error)}")
                     LOGGER.error(f"WarmLink: Error fetching batch {i//20 + 1}: {batch_error}")
@@ -161,6 +263,12 @@ class WarmlinkCoordinator(DataUpdateCoordinator):
             # No data at all - this should only happen on first setup failure
             raise UpdateFailed("No data received from API")
             
+        except WarmlinkAuthError as err:
+            # The cloud rejected the credentials. That never fixes itself, so
+            # don't silently keep stale data until a restart — raising
+            # ConfigEntryAuthFailed makes HA flag the entry and start the
+            # reauth flow (visible in the UI).
+            raise ConfigEntryAuthFailed(str(err)) from err
         except UpdateFailed:
             # If we have old data, keep it instead of failing
             if self.data:

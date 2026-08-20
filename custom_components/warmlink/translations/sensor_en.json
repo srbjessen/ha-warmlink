@@ -389,5 +389,14 @@
   "Fault3": "Fault Code 3",
   "Fault4": "Fault Code 4",
   "Fault7": "Fault Code 7",
-  "Fault8": "Fault Code 8"
+  "Fault8": "Fault Code 8",
+  "T1": "Current Temperature",
+  "Fan_Speed_Setting": "Heat Level",
+  "2013": "Power Draw",
+  "O2": "State O2",
+  "O5": "State O5",
+  "H06": "State H06",
+  "Power_Timer": "Power Timer",
+  "Power_Timer_Hours": "Power Timer Hours",
+  "Sleep": "Sleep Mode"
 }

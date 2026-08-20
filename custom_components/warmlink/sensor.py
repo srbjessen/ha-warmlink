@@ -116,9 +116,94 @@ async def async_setup_entry(hass, entry, async_add_entities):
         LOGGER.debug(f"WarmLink: Codes without unit mapping ({len(codes_without_unit)}): {codes_without_unit}")
     if codes_without_icon:
         LOGGER.debug(f"WarmLink: Codes without icon mapping ({len(codes_without_icon)}): {codes_without_icon}")
+
+    # Computed diagnostic: water Delta-T (outlet - inlet). A live "is it actually
+    # transferring heat" indicator that no single raw code provides. Heat pumps
+    # only — radiators don't report the T01/T02 water sensors, and an
+    # unidentified device would just carry a permanently-unknown sensor.
+    if getattr(coord, "is_heat_pump", False):
+        entities.append(WarmlinkDeltaTSensor(coord, entry))
     
     LOGGER.info(f"WarmLink: Created {len(entities)} sensor entities")
     async_add_entities(entities, True)
+
+
+# Codes for the computed Delta-T sensor.
+DELTA_T_OUTLET_CODE = "T02"   # Outlet Water Temp
+DELTA_T_INLET_CODE = "T01"    # Inlet Water Temp
+
+
+class WarmlinkDeltaTSensor(CoordinatorEntity, SensorEntity):
+    """Computed water Delta-T = Outlet (T02) - Inlet (T01), in °C.
+
+    Positive while heating (outlet warmer than inlet), negative while cooling.
+    Not a raw device code — derived from the two water-temperature sensors so it
+    works on any unit that reports T01/T02.
+    """
+
+    def __init__(self, coord, entry):
+        """Initialize the Delta-T sensor."""
+        super().__init__(coord)
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_water_delta_t"
+        self._attr_name = "Water Delta-T [T02-T01]"
+        self._attr_icon = "mdi:thermometer-lines"
+        self._attr_native_unit_of_measurement = "°C"
+        # Intentionally NO device_class=TEMPERATURE: this is a temperature
+        # *difference*, not an absolute temperature. With the TEMPERATURE class,
+        # HA applies the absolute °C→°F conversion on imperial installs, so a
+        # 5 °C delta would display as 41 °F instead of the correct 9 °F.
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info (matches the other WarmLink entities)."""
+        device_name = "WarmLink"
+        device_model = "Heat Pump"
+        if self.coordinator.device_info:
+            nick = self.coordinator.device_info.get("device_nick_name")
+            cust_model = self.coordinator.device_info.get("cust_model")
+            if nick and nick.strip():
+                device_name = nick
+            elif cust_model and cust_model.strip():
+                device_name = cust_model
+            if cust_model and cust_model.strip():
+                device_model = cust_model
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._entry.entry_id)},
+            name=device_name,
+            manufacturer="WarmLink",
+            model=device_model,
+        )
+
+    def _num(self, code):
+        """Return a protocol code's value as float, or None if unusable."""
+        if self.coordinator.data:
+            for item in self.coordinator.data:
+                if item.get("code") == code:
+                    v = item.get("value")
+                    if v in (None, "", "null"):
+                        return None
+                    try:
+                        return float(v)
+                    except (TypeError, ValueError):
+                        return None
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Available only when both source temperatures are readable."""
+        return self._num(DELTA_T_OUTLET_CODE) is not None and self._num(DELTA_T_INLET_CODE) is not None
+
+    @property
+    def native_value(self):
+        """Return outlet minus inlet, rounded to 1 decimal."""
+        outlet = self._num(DELTA_T_OUTLET_CODE)
+        inlet = self._num(DELTA_T_INLET_CODE)
+        if outlet is None or inlet is None:
+            return None
+        return round(outlet - inlet, 1)
+
 
 class WarmlinkSensor(CoordinatorEntity, SensorEntity):
     """Representation of a WarmLink sensor."""

@@ -52,13 +52,44 @@ class WarmlinkConfigFlow(config_entries.ConfigFlow, domain="warmlink"):
         if user_input is not None:
             errors = await _validate(self.hass, user_input)
             if not errors:
-                return self.async_create_entry(title="WarmLink", data=user_input)
+                title = "WarmLink"
+                if user_input.get("device_code"):
+                    title = f"WarmLink {user_input['device_code']}"
+                return self.async_create_entry(title=title, data=user_input)
 
         return self.async_show_form(
             step_id="user",
             data_schema=self.add_suggested_values_to_schema(
                 DATA_SCHEMA, user_input or {}
             ),
+            errors=errors,
+        )
+
+    async def async_step_reauth(self, entry_data):
+        """Start reauth after the cloud rejected the stored credentials.
+
+        Triggered by the coordinator raising ConfigEntryAuthFailed, so a wrong
+        password shows up as an actionable notification instead of entities
+        silently freezing on stale data until a restart.
+        """
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(self, user_input=None):
+        """Ask for the new password and revalidate before storing it."""
+        errors = {}
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        if user_input is not None:
+            data = {**entry.data, "password": user_input["password"]}
+            api = WarmlinkAPI(data["username"], data["password"], self.hass)
+            if await api.login():
+                self.hass.config_entries.async_update_entry(entry, data=data)
+                await self.hass.config_entries.async_reload(entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
+            errors["base"] = "auth"
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required("password"): str}),
+            description_placeholders={"username": entry.data.get("username", "")},
             errors=errors,
         )
 
