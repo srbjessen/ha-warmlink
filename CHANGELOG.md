@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [76.0] - 2026-08-20
+
+The climate release — a unified climate platform covering both heat pumps and LinkedGo smart radiators, plus cooling, DHW as a water heater, live compressor-based status, and a round of robustness hardening. Heat-pump behaviour is unchanged unless you use the new controls.
+
+### Added
+- **Smart radiator support** — LinkedGo/WarmLink panel radiators (e.g. Scantherm) are now first-class devices. They speak an 18-code protocol routed by `productId`; the integration auto-detects them and exposes a radiator climate entity (target temp, current temp, heat levels 1–6, on/off, live `hvac_action`). (#22)
+- **Cooling** — heat-pump cooling modes are controllable, gated behind the H05 cooling-function switch so a stray tap can't start cooling on uninsulated pipes. (#22)
+- **DHW water heater** — the hot-water tank is exposed as a proper `water_heater` entity. (#22)
+- **`hvac_action`** — the thermostat card shows live Heating / Cooling / Idle, driven by the actual compressor frequency (T30) rather than just the selected mode. (#22)
+- **Re-authentication flow** — a rejected password now raises a reauth prompt in Home Assistant instead of silently serving stale data. (#22)
+
+### Fixed
+- **Mode routing fails closed** — a device that can't be positively identified as a heat pump no longer receives heat-pump-only entities that would write inverted Mode values on a radiator. (#22)
+- **DHW preserved on HEAT/COOL** — choosing Heat or Cool on the thermostat card no longer drops the DHW component of the current mode. (#22)
+- **One token per account** — multiple config entries on the same account now share a single pooled API client with serialised logins, ending the `-100` token fights. (#22)
+- **Radiator optimistic mode** — bounded by a TTL and verified against the control response, so a lost or rejected write can't latch the UI on the wrong register. (#22)
+
+### Thanks
+This release was a genuine collective effort — thanks to **@Kristian-KK** (radiator hardware and a thorough robustness review) and **@richard-pm** (live cooling verification and the `hvac_action` contribution).
+
 ## [75.0] - 2026-08-17
 
 Packaging release preparing the repository for the HACS default store.
