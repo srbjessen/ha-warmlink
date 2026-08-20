@@ -307,6 +307,8 @@ Not a coder? A ⭐ on the repo — or a [coffee on Ko-fi](https://ko-fi.com/srbj
 
 - **Original API Reverse Engineering**: [zyznos321/warmlink](https://github.com/zyznos321/warmlink)
 - **Home Assistant Integration**: [srbjessen](https://github.com/srbjessen)
+- **Cooling modes, climate & water_heater entities**: [richard-pm](https://github.com/richard-pm)
+- **LinkedGo smart radiator support (Scantherm fan coils)**: [Kristian-KK](https://github.com/Kristian-KK)
 
 ---
 
