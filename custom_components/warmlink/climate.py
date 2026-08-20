@@ -74,6 +74,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 # =============================================================================
 
 OUTLET_TEMP_CODE = "T02"
+COMPRESSOR_FREQ_CODE = "T30"   # compressor frequency (Hz); >0 = actually running
 HEAT_MIN_CODE = "R10"
 HEAT_MAX_CODE = "R11"
 COOL_MIN_CODE = "R08"
@@ -181,6 +182,26 @@ class WarmlinkClimate(CoordinatorEntity, ClimateEntity):
     def current_temperature(self):
         """Outlet water temperature (T02)."""
         return self._num(OUTLET_TEMP_CODE)
+
+    @property
+    def hvac_action(self):
+        """Real activity, from the compressor — not just the selected mode.
+
+        OFF when powered off (or in DHW-only, which has no space-conditioning
+        component); otherwise HEATING/COOLING only while the compressor is
+        actually running (T30 > 0 Hz), else IDLE. This lets the thermostat card
+        show the live active state (dial colour + Heating/Cooling/Idle label)
+        rather than just the selected mode.
+        """
+        if not self._is_on():
+            return HVACAction.OFF
+        mode = self._raw(MODE_CODE)
+        running = (self._num(COMPRESSOR_FREQ_CODE) or 0) > 0
+        if mode in COOLING_MODES:
+            return HVACAction.COOLING if running else HVACAction.IDLE
+        if mode in HEATING_MODES:
+            return HVACAction.HEATING if running else HVACAction.IDLE
+        return HVACAction.OFF  # DHW only — no space conditioning
 
     def _active_target_codes(self):
         """Return (target, min, max, default_min, default_max) codes for the
