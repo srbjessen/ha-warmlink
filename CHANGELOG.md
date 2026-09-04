@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [77.0] - 2026-09-04
+
+A small correctness fix for the `Power` code sensor.
+
+### Fixed
+- **`Power` sensor no longer poses as a wattage reading** — the `Power` code is the unit's on/off flag (reports only `0`/`1`), but it was mapped to `W` in `units.json`, so it inherited `device_class: power` and `state_class: measurement`. That made it eligible for the Energy dashboard and Riemann-sum helper, where it produced a constant "1 W" and a plausible-looking but meaningless kWh total. The `"Power": "W"` mapping is removed; `Power` is now a plain state sensor (same entity, no bogus device class or unit). Thanks to @david-wulf for the detailed report. (#33)
+
 ## [76.0] - 2026-08-20
 
 The climate release — a unified climate platform covering both heat pumps and LinkedGo smart radiators, plus cooling, DHW as a water heater, live compressor-based status, and a round of robustness hardening. Heat-pump behaviour is unchanged unless you use the new controls.
