@@ -8,8 +8,6 @@
   "documentation": "https://github.com/srbjessen/ha-warmlink",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/srbjessen/ha-warmlink/issues",
-  "requirements": [
-    "aiohttp"
-  ],
+  "requirements": [],
   "version": "77.0"
 }
