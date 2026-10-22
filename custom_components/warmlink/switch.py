@@ -25,6 +25,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         # cooling function must be an explicit two-step act, so a stray tap on
         # the thermostat card can never start cooling on uninsulated pipes.
         entities.append(WarmlinkCoolingFunctionSwitch(coordinator, entry))
+    if coordinator.value(HAN_CONTROL_CODE) is not None:
+        entities.append(WarmlinkSilentSwitch(coordinator, entry))
     async_add_entities(entities)
     LOGGER.info("WarmLink: Added %d switch(es)", len(entities))
 
@@ -148,4 +150,49 @@ class WarmlinkCoolingFunctionSwitch(WarmlinkPowerSwitch):
         value = "1" if turn_on else "0"
         LOGGER.info(f"WarmLink: Requesting cooling function H05={value}")
         await self.coordinator.api.set_value(device_code, COOLING_FUNCTION_CODE, value)
+        await self.coordinator.async_request_refresh()
+
+
+# Heat pump manual control register (16-bit binary mask).
+# Bit 1 (index 14 from left) controls Silent Mode (Manual Mute):
+# 1 = Silent Mode ON, 0 = Silent Mode OFF.
+HAN_CONTROL_CODE = "hanControl"
+MUTE_BIT_INDEX = 14
+
+
+class WarmlinkSilentSwitch(WarmlinkPowerSwitch):
+    """Silent mode (mute) switch controlling bit 1 of the hanControl register."""
+
+    def __init__(self, coordinator, entry):
+        """Initialize the switch."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_silent_mode_switch"
+        self._attr_name = "Silent Mode"
+        self._attr_icon = "mdi:volume-mute"
+
+    @property
+    def is_on(self):
+        """Return True if Silent Mode bit is 1."""
+        val = self.coordinator.value(HAN_CONTROL_CODE)
+        if val and len(str(val)) == 16:
+            return str(val)[MUTE_BIT_INDEX] == "1"
+        return None
+
+    async def _set_power(self, turn_on: bool) -> None:
+        """Write updated hanControl mask."""
+        device_code = None
+        if self.coordinator.device_info:
+            device_code = self.coordinator.device_info.get("device_code")
+        if not device_code:
+            LOGGER.error("WarmLink: No device_code available, cannot set silent mode")
+            return
+
+        current = list(str(self.coordinator.value(HAN_CONTROL_CODE) or "0" * 16))
+        if len(current) != 16:
+            current = list("0" * 16)
+        current[MUTE_BIT_INDEX] = "1" if turn_on else "0"
+        mask = "".join(current)
+
+        LOGGER.info(f"WarmLink: Requesting silent mode hanControl={mask}")
+        await self.coordinator.api.set_value(device_code, HAN_CONTROL_CODE, mask)
         await self.coordinator.async_request_refresh()
