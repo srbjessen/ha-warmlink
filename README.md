@@ -4,7 +4,7 @@
 
 # WarmLink Integration for Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-blue.svg)](https://github.com/hacs/default)
 [![GitHub release](https://img.shields.io/github/release/srbjessen/ha-warmlink.svg)](https://github.com/srbjessen/ha-warmlink/releases)
 [![License](https://img.shields.io/github/license/srbjessen/ha-warmlink.svg)](LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/srbjessen)
@@ -12,6 +12,8 @@
 Home Assistant integration for WarmLink/Zealux heat pumps.
 
 Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant with comprehensive sensor coverage, fault code monitoring, and real-time updates.
+
+> 🎉 **Now available in the HACS default store!** Just search for **WarmLink** in HACS — no custom repository needed. See [Installation](#installation) below.
 
 > **Confirmed-compatible devices:** several brands rebadge the same LinkedGo cloud
 > platform, and users have confirmed the integration working on them —
@@ -92,14 +94,26 @@ Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant 
 
 ### HACS (Recommended)
 
+WarmLink is in the HACS default store, so you can install it directly:
+
 1. Open HACS in Home Assistant
-2. Click the three dots in the top right corner
-3. Select "Custom repositories"
-4. Add this repository URL: `https://github.com/srbjessen/ha-warmlink`
-5. Category: `Integration`
-6. Click "Add"
-7. Click "Install" on the WarmLink integration
-8. Restart Home Assistant
+2. Search for **WarmLink**
+3. Open it and click **Download**
+4. Restart Home Assistant
+
+<details>
+<summary>Not showing up yet? Add it as a custom repository</summary>
+
+It can take a few hours after a release for the HACS default store to refresh. In the meantime you can add it manually:
+
+1. Open HACS → click the three dots in the top right corner
+2. Select **Custom repositories**
+3. Add this repository URL: `https://github.com/srbjessen/ha-warmlink`
+4. Category: `Integration`
+5. Click **Add**, then **Download** on the WarmLink integration
+6. Restart Home Assistant
+
+</details>
 
 ### Manual Installation
 
