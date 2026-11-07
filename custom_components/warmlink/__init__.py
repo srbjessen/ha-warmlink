@@ -9,7 +9,7 @@ LOGGER = logging.getLogger(__name__)
 # Configured via config entries (UI) only, not via YAML.
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-PLATFORMS = ["sensor", "button", "switch", "select", "water_heater", "climate"]
+PLATFORMS = ["sensor", "button", "switch", "select", "number", "water_heater", "climate"]
 
 async def async_setup(hass, config):
     """Set up the WarmLink component."""

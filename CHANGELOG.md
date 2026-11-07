@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [79.0] - 2026-11-07
+
+Writable-control expansion — the heating curve, silent mode, and several service-menu codes are now settable from Home Assistant, so the heat pump can be tuned and automated (by electricity price, room temperature, or schedule) instead of only monitored.
+
+### Added
+- **Silent Mode switch** — mutes the compressor/fan night mode. Prefers the dedicated `H22` code (used by Zealux "Winter friend" and similar units); on models that don't expose `H22` it falls back to bit 14 of the `hanControl` manual-control mask, flipping only the mute bit so other control flags are preserved. Exactly one Silent Mode switch is created per unit. Closes #35. Thanks to **@marekkubacki** for reverse-engineering the `hanControl` mute bit on FoxAIR/Phnix units (#36), which this fallback path implements.
+- **Writable weather compensation** — the AT/weather-compensation curve is now fully controllable, closing #40:
+  - **Weather Compensation switch** (`H36` enable flag) — turn the curve on/off so an automation can drop to a manual target during cheap electricity and hand control back afterwards.
+  - **Slope** and **offset** numbers (`compensate_slope` / `compensate_offset`) — tune the curve directly; the offset's upper bound is raised to 75 so weather-comp automations have full travel.
+- **Writable compressor frequencies** — the C-group frequency codes are exposed as numbers (clamped 30–90 Hz).
+- **Writable heating hysteresis** — `R04` / `R05` (reheat on/off differentials) are settable.
+- **Writable circulation-pump mode** — `P01` pump operation mode is settable.
+
+### Notes
+- Additive and safe: each control is created only on units that actually report its code, so radiators and units without a given feature are unaffected.
+
+## [78.0] - 2026-10-18
+
+Packaging for the HACS default store.
+
+### Added
+- **Local brand icons** (`brand/icon.png` 256px, `brand/icon@2x.png` 512px) for the HACS default catalog.
+
+### Changed
+- **Install docs now lead with the HACS default store**, since the integration is in the catalog.
+- **`aiohttp` dropped from `requirements`** — it is bundled with Home Assistant core. (#37)
+
 ## [77.0] - 2026-09-04
 
 A small correctness fix for the `Power` code sensor.

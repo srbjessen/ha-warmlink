@@ -26,7 +26,7 @@ Monitor and control your WarmLink/Zealux heat pump directly from Home Assistant 
 ## Features
 
 ✅ **391 Sensors** - Complete monitoring of your heat pump
-✅ **Writable Controls** - Set power, operating mode, and DHW target temperature
+✅ **Writable Controls** - Power, operating mode, DHW target, weather-compensation (enable / slope / offset), silent mode, compressor frequencies, pump mode and heating hysteresis
 ✅ **Summer Anti-Thermosiphon** - Park the 3-way diverter off the DHW tank via the Mode select to stop passive summer standby drain — for units affected by it ([guide below](#anti-thermosiphon-stop-summer-dhw-tank-drain-optional))
 ✅ **Fault Code Detection** - 41 fault codes including critical E035
 ✅ **Real-time Updates** - Automatic updates every 2 minutes
@@ -323,6 +323,7 @@ Not a coder? A ⭐ on the repo — or a [coffee on Ko-fi](https://ko-fi.com/srbj
 - **Home Assistant Integration**: [srbjessen](https://github.com/srbjessen)
 - **Cooling modes, climate & water_heater entities**: [richard-pm](https://github.com/richard-pm)
 - **LinkedGo smart radiator support (Scantherm fan coils)**: [Kristian-KK](https://github.com/Kristian-KK)
+- **Silent mode `hanControl` reverse-engineering (FoxAIR/Phnix mute bit)**: [marekkubacki](https://github.com/marekkubacki)
 
 ---
 

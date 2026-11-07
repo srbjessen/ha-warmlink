@@ -9,5 +9,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/srbjessen/ha-warmlink/issues",
   "requirements": [],
-  "version": "78.0"
+  "version": "79.0"
 }
