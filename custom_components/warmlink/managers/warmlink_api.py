@@ -2,10 +2,34 @@
 import asyncio
 import hashlib
 import logging
+import aiohttp
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from ..common.endpoints import Endpoints
 
 LOGGER = logging.getLogger(__name__)
+
+# Transient-error retry (issue #42). cloud.linked-go.com drops the occasional
+# single request -- a timeout or a connection reset -- while the surrounding
+# cycles succeed, which blanks ~20 entities for a whole 120 s poll and leaves
+# history gaps. These are the delays (seconds) BETWEEN attempts, so the client
+# tries len(_RETRY_BACKOFFS)+1 times in all; worst-case ~11 s stays well below
+# the 120 s update interval.
+_RETRY_BACKOFFS = (1, 3, 7)
+
+# Transport-level failures worth retrying. aiohttp.ClientError is the base for
+# connection resets/OS errors/response-decode errors; asyncio.TimeoutError
+# (incl. aiohttp.ServerTimeoutError) covers read/connect timeouts.
+_TRANSIENT_EXC = (asyncio.TimeoutError, aiohttp.ClientError)
+
+
+class _TransientCloudError(aiohttp.ClientError):
+    """A retryable HTTP status (429 / 5xx) from the cloud.
+
+    Subclasses ClientError so the retry loop catches it like any other
+    transient transport failure -- but, because it means the server *did*
+    receive the request, it is deliberately NOT a connect-phase error, so a
+    non-idempotent write is never retried on it (the write may have applied).
+    """
 
 # Product IDs from the WarmLink/AquaTemp ecosystem
 PRODUCT_IDS = [
@@ -103,29 +127,71 @@ class WarmlinkAPI:
             )
         raise ConnectionError(f"Could not log in to the WarmLink cloud ({path})")
 
-    async def post(self, path, payload):
-        """Make a POST request to the API."""
+    async def post(self, path, payload, idempotent=True):
+        """Make a POST request to the API, retrying transient cloud failures.
+
+        The cloud drops the occasional single request (timeout / connection
+        reset / 429 / 5xx) while the next cycle succeeds, so those are retried
+        with a short bounded backoff (issue #42). Non-transient failures are
+        never retried: a rejected login surfaces as ``WarmlinkAuthError``, and
+        a valid JSON response carrying an API ``error_code`` is returned to the
+        caller unchanged (it is data, not an exception, so the loop never sees
+        it).
+
+        ``idempotent`` guards writes. A safe-to-repeat read retries on any
+        transient transport error. A write (device/control) is NOT idempotent,
+        so it is retried ONLY when the request certainly never reached the
+        server -- i.e. the connection could not be established -- and never
+        after a timeout, reset, or 5xx, any of which could double-apply it.
+        """
         if not self.token:
             if not await self.ensure_token():
                 self._raise_login_failure(path)
+
+        attempts = len(_RETRY_BACKOFFS) + 1
+        for attempt in range(attempts):
+            try:
+                return await self._post_once(path, payload)
+            except WarmlinkAuthError:
+                raise
+            except _TRANSIENT_EXC as e:
+                # A write is only safe to retry when the connection was never
+                # established (ClientConnectorError) -- the request provably
+                # never reached the server, so it cannot have been applied.
+                retryable = idempotent or isinstance(e, aiohttp.ClientConnectorError)
+                is_last = attempt == attempts - 1
+                if is_last or not retryable:
+                    LOGGER.error("WarmLink API: Request failed to %s: %r", path, e)
+                    raise
+                delay = _RETRY_BACKOFFS[attempt]
+                LOGGER.warning(
+                    "WarmLink API: transient error on %s (%s), retry %d/%d in %ds: %r",
+                    path, type(e).__name__, attempt + 1, attempts - 1, delay, e,
+                )
+                await asyncio.sleep(delay)
+
+    async def _post_once(self, path, payload):
+        """One POST attempt, with the existing token-expiry re-auth handling.
+
+        Raises ``_TransientCloudError`` on 429/5xx so the caller's retry loop
+        treats a transient server-side status the same as a dropped connection.
+        """
         headers = {"x-token": self.token}
-        try:
-            async with self.session.post(f"{self.base_url}/{path}", json=payload, headers=headers) as r:
-                data = await r.json()
-                # Check for token expiration (-100 = "Please log in again")
-                if r.status == 401 or data.get("error_code") == "401" or data.get("error_code") == "-100":
-                    LOGGER.debug("WarmLink API: Token expired, re-authenticating")
-                    if not await self.ensure_token(bad_token=headers["x-token"]):
-                        self._raise_login_failure(path)
-                    headers = {"x-token": self.token}
-                    async with self.session.post(f"{self.base_url}/{path}", json=payload, headers=headers) as r2:
-                        return await r2.json()
-                return data
-        except WarmlinkAuthError:
-            raise
-        except Exception as e:
-            LOGGER.error(f"WarmLink API: Request failed to {path}: {e}")
-            raise
+        async with self.session.post(f"{self.base_url}/{path}", json=payload, headers=headers) as r:
+            if r.status == 429 or r.status >= 500:
+                raise _TransientCloudError(f"HTTP {r.status} from {path}")
+            data = await r.json()
+            # Check for token expiration (-100 = "Please log in again")
+            if r.status == 401 or data.get("error_code") == "401" or data.get("error_code") == "-100":
+                LOGGER.debug("WarmLink API: Token expired, re-authenticating")
+                if not await self.ensure_token(bad_token=headers["x-token"]):
+                    self._raise_login_failure(path)
+                headers = {"x-token": self.token}
+                async with self.session.post(f"{self.base_url}/{path}", json=payload, headers=headers) as r2:
+                    if r2.status == 429 or r2.status >= 500:
+                        raise _TransientCloudError(f"HTTP {r2.status} from {path}")
+                    return await r2.json()
+            return data
     
     async def get_devices(self):
         """Get list of devices."""
@@ -164,6 +230,8 @@ class WarmlinkAPI:
                 }
             ],
         }
-        result = await self.post(Endpoints.DeviceControl, payload)
+        # idempotent=False: a control write must not be auto-retried after an
+        # ambiguous failure (timeout/reset/5xx) -- it may already have applied.
+        result = await self.post(Endpoints.DeviceControl, payload, idempotent=False)
         LOGGER.debug(f"WarmLink API: Control response for {protocol_code}={value}: {result}")
         return result
